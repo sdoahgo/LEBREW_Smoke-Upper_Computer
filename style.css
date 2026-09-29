@@ -1,0 +1,254 @@
+/* LEBREW SMOKE 上位机样式 */
+:root {
+  --accent: #e0512f;
+  --accent-dark: #b53d20;
+  --bg: #f4f5f7;
+  --card: #ffffff;
+  --line: #dce0e6;
+  --muted: #6b7280;
+  --ok: #16a34a;
+  --warn: #d97706;
+  --danger: #dc2626;
+  --ink: #1f2430;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: Inter, "Segoe UI", "Microsoft YaHei", Arial, sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  font-size: 14px;
+}
+
+/* ---------- 顶栏 ---------- */
+.topbar {
+  display: flex; align-items: center; gap: 20px; flex-wrap: wrap;
+  background: #17181c; color: #fff; padding: 12px 22px;
+}
+.brand h1 { margin: 0; font-size: 18px; font-weight: 700; letter-spacing: .5px; }
+.brand h1 span { font-size: 12px; color: #9aa0ab; margin-left: 8px; font-weight: 400; }
+.conn { display: flex; align-items: center; gap: 10px; }
+.meta { margin-left: auto; display: flex; align-items: center; gap: 14px; color: #9aa0ab; font-size: 12px; }
+.mock, .telemetry { display: flex; align-items: center; gap: 6px; cursor: pointer; user-select: none; }
+
+.btn {
+  font: inherit; font-size: 13px; padding: 7px 14px; cursor: pointer;
+  border: 1px solid var(--line); border-radius: 8px; background: #fff; color: var(--ink);
+}
+.btn:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.btn.primary:hover:not(:disabled) { background: var(--accent-dark); color: #fff; }
+.btn.danger { background: var(--danger); border-color: var(--danger); color: #fff; }
+.btn.danger:hover:not(:disabled) { filter: brightness(.9); color: #fff; }
+.btn.warn { background: var(--warn); border-color: var(--warn); color: #fff; }
+.btn.warn:hover:not(:disabled) { filter: brightness(.95); color: #fff; }
+.btn.ghost { background: transparent; }
+.btn.big { padding: 12px 18px; font-size: 15px; font-weight: 600; flex: 1; }
+.btn.square { width: 44px; height: 44px; font-size: 18px; padding: 0; }
+.btn.small { padding: 4px 10px; font-size: 12px; }
+
+.chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: #24262c; border-radius: 999px; padding: 4px 12px; font-size: 12px; color: #c8ccd4;
+}
+.dot { width: 8px; height: 8px; border-radius: 50%; background: #565b66; display: inline-block; }
+.chip.on .dot { background: var(--ok); }
+.chip.on { color: #9fe6b5; }
+
+/* ---------- 标签页 ---------- */
+.tabs { display: flex; gap: 4px; background: #fff; border-bottom: 1px solid var(--line); padding: 0 22px; }
+.tabs button {
+  font: inherit; font-size: 14px; padding: 12px 18px; margin-top: 6px;
+  border: 0; border-bottom: 3px solid transparent; background: none; cursor: pointer; color: var(--muted);
+}
+.tabs button.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
+
+main { max-width: 1280px; margin: 0 auto; padding: 18px 22px 40px; }
+.tab { display: none; }
+.tab.active { display: block; }
+
+.card {
+  background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+  padding: 16px 18px; margin-bottom: 16px;
+}
+.card h2 { margin: 0 0 12px; font-size: 15px; display: flex; align-items: center; gap: 10px; }
+.card h3 { margin: 0 0 8px; font-size: 13px; }
+.row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
+@media (max-width: 960px) { .row-2 { grid-template-columns: 1fr; } }
+.hint { font-size: 12px; color: var(--muted); line-height: 1.7; margin: 10px 0 0; }
+.hidden { display: none !important; }
+
+/* ---------- 主控 ---------- */
+.envstrip {
+  display: flex; gap: 18px; font-size: 12px; color: var(--muted);
+  justify-content: center; flex-wrap: wrap;
+}
+.envstrip b { color: var(--ink); font-variant-numeric: tabular-nums; font-weight: 600; }
+.statecard { display: flex; flex-direction: column; gap: 12px; }
+.statebadge {
+  font-size: 26px; font-weight: 700; text-align: center; padding: 14px;
+  border-radius: 10px; background: #eef0f3; color: var(--muted);
+}
+.statebadge.s1 { background: #fff3e0; color: var(--warn); }
+.statebadge.s2 { background: #e8f7ee; color: var(--ok); }
+.statebadge.s3 { background: #fdeaea; color: var(--danger); }
+.statebadge.s4 { background: #e8f1fd; color: #2563eb; }
+.statebadge.s5 { background: #fdeaea; color: var(--danger); }
+.stateline { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+.pill {
+  font-size: 12px; padding: 3px 12px; border-radius: 999px;
+  background: #eef0f3; color: var(--muted);
+}
+.pill.p3 { background: #fdeaea; color: var(--danger); }
+.pill.p2 { background: #fff3e0; color: var(--warn); }
+.pill.p1 { background: #e8f7ee; color: var(--ok); }
+.pill.sw2 { background: #e8f1fd; color: #2563eb; }
+
+.biggrid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; }
+.biggrid > div {
+  background: #fafbfc; border: 1px solid var(--line); border-radius: 10px;
+  padding: 10px; display: flex; flex-direction: column; gap: 2px; text-align: center;
+}
+.biggrid > .wide3 { grid-column: span 3; }
+.biggrid > .wide2 { grid-column: span 2; }
+.biggrid b { font-size: 20px; font-variant-numeric: tabular-nums; }
+.biggrid .big b { font-size: 30px; }
+.biggrid span { font-size: 11px; color: var(--muted); }
+
+.segbtns { display: flex; gap: 8px; flex-wrap: wrap; }
+.segbtns .btn { padding: 6px 14px; }
+.segbtns .btn.active {
+  background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600;
+}
+
+.gearlabel { font-size: 12px; color: var(--muted); margin-bottom: 8px; }
+.geargrid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin-bottom: 14px; }
+@media (max-width: 560px) { .geargrid { grid-template-columns: repeat(4, 1fr); } }
+.geargrid .btn { padding: 9px 0; font-weight: 600; }
+.geargrid .btn.active {
+  background: var(--accent); border-color: var(--accent); color: #fff;
+}
+.runbtns { display: flex; gap: 10px; margin-bottom: 10px; }
+/* 气流切换器：三枚大按钮，切换到哪格哪格高亮（与挡位网格同一套高亮视觉） */
+.swbtns { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 14px; }
+.swbtns .btn { padding: 16px 0; font-size: 17px; font-weight: 600; }
+.swbtns .btn.active {
+  background: var(--accent); border-color: var(--accent); color: #fff;
+  box-shadow: 0 0 0 2px rgba(74, 158, 255, .25);
+}
+/* 未选中的运行按钮：只描边不填充，选中的保持填充常亮 */
+.btn.ghosted { background: transparent; }
+.btn.primary.ghosted { border-color: var(--accent); color: var(--accent); }
+.btn.danger.ghosted { border-color: var(--danger); color: var(--danger); }
+.btn.warn.ghosted { border-color: var(--warn); color: var(--warn); }
+.btn.neutral { background: #3b4250; border-color: #3b4250; color: #fff; }
+.btn.neutral:hover:not(:disabled) { background: #2f3542; color: #fff; }
+/* Boost 开/关：对应设备当前状态的一枚亮橙填充，另一枚白底 */
+.btn.boost-sel { background: #ff8c1a; border-color: #ff8c1a; color: #fff; font-weight: 600; }
+.btn.boost-sel:hover:not(:disabled) { background: #f97316; color: #fff; }
+.btn.boost-unsel { background: #fff; border-color: #fff; color: #232833; }
+.btn.boost-unsel:hover:not(:disabled) { background: #fff; border-color: #ff8c1a; color: #f97316; }
+.btn.neutral.ghosted { border-color: var(--muted); color: var(--muted); background: transparent; }
+.btn.big.ghosted { padding: 12px 18px; }
+
+.faulthost { border-color: #f3c1c1; background: #fff7f7; }
+.faultlist { list-style: none; margin: 0; padding: 0; }
+.faultlist li {
+  padding: 8px 10px; border-radius: 8px; background: #fdeaea; color: var(--danger);
+  margin-bottom: 6px; font-weight: 600; white-space: pre-line;
+}
+
+/* ---------- 曲线 ---------- */
+.chartbar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 12px; }
+.chartbar h2 { margin: 0; }
+.charttools { display: flex; align-items: center; gap: 10px; font-size: 12px; color: var(--muted); }
+.charttools select { font: inherit; padding: 4px 8px; border: 1px solid var(--line); border-radius: 6px; }
+.charts { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+@media (max-width: 960px) { .charts { grid-template-columns: 1fr; } }
+.chart { border: 1px solid var(--line); border-radius: 10px; padding: 10px; background: #fbfcfd; }
+.chart label { font-size: 12px; color: var(--muted); display: block; margin-bottom: 6px; }
+.chart canvas { width: 100%; height: 150px; display: block; }
+
+/* ---------- 设置 ---------- */
+.form { display: flex; flex-direction: column; gap: 12px; }
+.line { display: grid; grid-template-columns: 170px 1fr; align-items: center; gap: 10px; font-size: 13px; }
+.line select, .line input[type=number] {
+  font: inherit; padding: 6px 10px; border: 1px solid var(--line); border-radius: 7px; background: #fff;
+}
+.line input[type=range] { accent-color: var(--accent); }
+.selftest { display: flex; flex-direction: column; gap: 10px; }
+.st { display: flex; align-items: center; gap: 10px; font-size: 13px; }
+.st i { width: 12px; height: 12px; border-radius: 50%; background: #d5d9df; display: inline-block; }
+.st em { margin-left: auto; font-style: normal; color: var(--muted); }
+.st.ok i { background: var(--ok); } .st.ok em { color: var(--ok); }
+.st.bad i { background: var(--danger); } .st.bad em { color: var(--danger); }
+.kv { display: flex; flex-direction: column; gap: 8px; font-size: 13px; }
+.kv div { display: flex; justify-content: space-between; border-bottom: 1px dashed var(--line); padding-bottom: 6px; }
+.kv span { color: var(--muted); }
+
+/* ---------- 升级 ---------- */
+.upgrade-file { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 14px; }
+.upgrade-file input[type=file] { font: inherit; }
+.fileinfo { font-size: 12px; color: var(--muted); }
+.channels { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+.channels .btn { flex: 1; min-width: 150px; }
+.progresswrap { margin: 6px 0 12px; }
+.progress { height: 12px; background: #eef0f3; border-radius: 8px; overflow: hidden; }
+#otaBar { height: 100%; width: 0; background: var(--accent); transition: width .2s; }
+.progressinfo { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); margin-top: 6px; }
+.wifi-steps { background: #fbf7ee; border: 1px solid #eadfc4; border-radius: 10px; padding: 12px 16px; margin-bottom: 12px; }
+.wifi-steps ol { margin: 8px 0 12px; padding-left: 20px; line-height: 2; font-size: 13px; }
+.otalog {
+  background: #0d0f13; color: #86e29b; font-size: 11.5px; line-height: 1.6;
+  padding: 12px; border-radius: 10px; height: 200px; overflow: auto;
+  font-family: Consolas, "Cascadia Mono", monospace; white-space: pre-wrap; margin: 0;
+}
+
+/* ---------- 日志 ---------- */
+.logbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.logbar h2 { margin: 0; }
+.logbar > div { display: flex; gap: 6px; }
+.logbox {
+  background: #0d0f13; color: #9aa4b2; font-size: 11.5px; line-height: 1.6;
+  padding: 10px; border-radius: 10px; height: 300px; overflow: auto;
+  font-family: Consolas, "Cascadia Mono", monospace; white-space: pre-wrap; word-break: break-all; margin: 0;
+}
+.simbtns { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.simbtns select { font: inherit; padding: 6px 10px; border: 1px solid var(--line); border-radius: 7px; }
+
+/* ---------- 故障弹窗 ---------- */
+.overlay {
+  position: fixed; inset: 0; background: rgba(10, 12, 16, .55);
+  display: flex; align-items: center; justify-content: center; z-index: 50;
+}
+.faultpopup {
+  background: #fff; border-radius: 16px; padding: 28px 32px; max-width: 420px;
+  text-align: center; box-shadow: 0 18px 50px rgba(0,0,0,.35);
+}
+.ficon { font-size: 44px; margin-bottom: 10px; }
+.ftext { font-size: 16px; font-weight: 600; white-space: pre-line; line-height: 1.8; margin-bottom: 18px; color: var(--danger); }
+
+/* ---------- 催化温度大步进器 ---------- */
+.stepper {
+  display: flex; align-items: center; gap: 14px;
+  background: #fafbfc; border: 1px solid var(--line); border-radius: 12px;
+  padding: 12px 14px; margin: 4px 0 2px;
+}
+.stepbtn {
+  width: 64px; height: 64px; font-size: 26px; font-weight: 700; padding: 0;
+  border-radius: 14px; flex: none; line-height: 1;
+}
+.stepvalue {
+  flex: 1; text-align: center; display: flex; flex-direction: column; gap: 2px;
+}
+.stepvalue b {
+  font-size: 34px; font-variant-numeric: tabular-nums; color: var(--accent);
+}
+.stepvalue span { font-size: 12px; color: var(--muted); }
+
+.wifiprobe {
+  font-size: 13px; color: var(--warn); background: #fff7e6;
+  border: 1px solid #f0d9a8; border-radius: 8px; padding: 8px 12px; margin-bottom: 10px;
+}
+.wifiprobe.ok { color: var(--ok); background: #eefaf1; border-color: #b7e2c3; }

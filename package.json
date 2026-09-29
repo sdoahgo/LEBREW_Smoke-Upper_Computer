@@ -1,0 +1,7 @@
+{
+  "name": "smoke-upper-computer",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "LEBREW SMOKE 除烟机网页版上位机（Web Bluetooth / Web Serial）"
+}

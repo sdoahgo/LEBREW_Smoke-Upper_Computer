@@ -1,0 +1,10 @@
+# 只上传上位机本体：固件补丁归固件仓库(Smoke)，参考工程与本地材料不入库
+firmware_patch/
+old_upper/
+ref_project/
+ref_purefluxion/
+user_screenshot_2x.png
+
+# 运行产物
+node_modules/
+*.log
