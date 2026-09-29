@@ -1,12 +1,13 @@
 // app.js — LEBREW SMOKE 除烟机上位机主逻辑
 // 依赖基座 comm_link.js（不改核心）+ smoke_protocol / smoke_ble / smoke_sim
 
-import { Link, MagicLengthFramer, SerialTransport, bytesToHex } from './comm_link.js?v=20260928r';
-import { SmokeBleTransport } from './smoke_ble.js?v=20260928r';
-import { SmokeSimulator } from './smoke_sim.js?v=20260928s';
+import { Link, MagicLengthFramer, SerialTransport, bytesToHex } from './comm_link.js?v=20260928w';
+import { SmokeBleTransport } from './smoke_ble.js?v=20260928w';
+import { SmokeSimulator } from './smoke_sim.js?v=20260928w';
 import {
   ACK_WINDOW,
   CMD,
+  HOST_VERSION,
   SERIAL_CHUNK,
   DEVICE_STATES,
   OTA_MAX_CHUNK,
@@ -21,7 +22,7 @@ import {
   describeFault,
   frameSerial,
   parseUplink,
-} from './smoke_protocol.js?v=20260928r';
+} from './smoke_protocol.js?v=20260928w';
 
 const $ = (id) => document.getElementById(id);
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -61,6 +62,8 @@ const state = {
   telemetry: { state: -1, gear: 0, rpm: 0, inlet: null, outlet: null, ssr: 0, voc: 0, hum: 0 },
   settings: null,
   version: null,
+  tempUnitF: false,                          // 温度单位跟随设备设置（false=℃ true=℉）
+  temps: { inlet: null, outlet: null, ambient: null },   // 最近一次原始摄氏值
   activeFaults: new Map(),
   history: [],            // {t, inlet, outlet, rpm, ssr}
   chartPaused: false,
@@ -79,6 +82,10 @@ async function teardown() {
   }
   state.sim?.stop();
   state.link = state.ble = state.serial = state.sim = null;
+  state.tempUnitF = false;   // 单位回默认 ℃，重连后由 0xB0 重新同步
+  state.temps = { inlet: null, outlet: null, ambient: null };
+  refreshMainTemps();
+  applyFanLimit(120);   // 挡位网格回全显，重连后由设备上限重新约束
 }
 
 async function build() {
@@ -270,11 +277,10 @@ function handleUplink(message, transport) {
       refreshRunButtons();
       break;
     case 'sensors':
-      updateValue('inletValue', message.inletTemp, 1);
-      updateValue('outletValue', message.outletTemp, 1);
+      state.temps = { inlet: message.inletTemp, outlet: message.outletTemp, ambient: message.ambientTemp };
+      refreshMainTemps();
       updateValue('vocValue', message.voc);
       updateValue('humValue', message.humidity);
-      updateValue('ambientValue', message.ambientTemp);
       break;
     case 'version':
       state.version = message;
@@ -311,12 +317,11 @@ function applyTelemetry(t) {
   gearSel = t.gear;   // 挡位始终跟随设备（设备是唯一事实源）
   refreshGearButtons();
   $('rpmValue').textContent = t.rpm;
-  updateValue('inletValue', t.inletTemp, 1);
-  updateValue('outletValue', t.outletTemp, 1);   // 出风口 PT100 实测 = 催化温度
+  state.temps = { inlet: t.inletTemp, outlet: t.outletTemp, ambient: t.ambientTemp };
+  refreshMainTemps();   // 出风口 PT100 实测 = 催化温度
   updateValue('ssrValue', t.ssrPwm);
   updateValue('vocValue', t.voc);
   updateValue('humValue', t.humidity);
-  updateValue('ambientValue', t.ambientTemp);
 
   if (t.faultCode) applyFault(t.faultCode, true);
 
@@ -365,10 +370,17 @@ function showFaultPopup(text) {
 
 function applySettings(s) {
   state.settings = s;
+  const unitF = s.tempUnit === 1;
+  if (unitF !== state.tempUnitF) {
+    state.tempUnitF = unitF;
+    refreshMainTemps();   // 设备端（或上位机）切换单位，主控界面数值与单位立即跟随
+  }
   settingGroups.language.set(s.language);
   settingGroups.tempUnit.set(s.tempUnit);
   settingGroups.boostDuration.set(s.boostDuration);
   settingGroups.memory.set(s.memoryMode);
+  settingGroups.fanLimit.set(s.fanLimit ?? 100);
+  applyFanLimit(s.fanLimit ?? 100);   // 主控挡位网格跟随上限：100 隐藏 110/120，120 全显
   catalyticStepper.show(s.catalyticTemp);
 }
 
@@ -404,6 +416,22 @@ function setDeviceText(text) {
 function updateValue(id, value, digits = 0) {
   const el = $(id);
   el.textContent = value == null ? '--' : Number(value).toFixed(digits);
+}
+
+// —— 主控界面温度显示：单位与数值跟随设备设置（0xB0）实时同步 ——
+function fmtTempC(celsius) {
+  if (celsius == null || Number.isNaN(celsius)) return '--';
+  return (state.tempUnitF ? celsius * 1.8 + 32 : celsius).toFixed(1);
+}
+
+function refreshMainTemps() {
+  const unit = state.tempUnitF ? '℉' : '℃';
+  $('inletUnit').textContent = unit;
+  $('outletUnit').textContent = unit;
+  $('ambientUnit').textContent = unit;
+  $('inletValue').textContent = fmtTempC(state.temps.inlet);
+  $('outletValue').textContent = fmtTempC(state.temps.outlet);
+  $('ambientValue').textContent = fmtTempC(state.temps.ambient);
 }
 
 function setSelect(id, value) {
@@ -851,6 +879,18 @@ function refreshGearButtons() {
   }
 }
 
+// —— 风机上限跟随设备设置（0xB0）：100 时主控挡位最多显示到 100，120（Boost 模式）才显示 110/120 ——
+function applyFanLimit(limit) {
+  const max = Number(limit) === 120 ? 120 : 100;
+  for (const button of gearButtons) {
+    button.classList.toggle('hidden', Number(button.dataset.gear) > max);
+  }
+  if (gearSel > max) {
+    gearSel = max;   // 与设备一致：超限的选中挡位被钳到上限
+    refreshGearButtons();
+  }
+}
+
 for (const button of gearButtons) {
   button.addEventListener('click', async () => {
     gearSel = Number(button.dataset.gear);
@@ -990,6 +1030,7 @@ const settingGroups = {
   tempUnit: wireSegGroup('setTempUnitGroup', CMD.SET_TEMP_UNIT),
   boostDuration: wireSegGroup('boostDurationGroup', CMD.SET_BOOST_DURATION),
   memory: wireSegGroup('setMemoryGroup', CMD.SET_MEMORY_MODE),
+  fanLimit: wireSegGroup('setFanLimitGroup', CMD.SET_FAN_LIMIT),
 };
 
 $('btnSelfTest').addEventListener('click', () => withChannel(() => sendCommand(CMD.SELF_TEST)));
@@ -1085,3 +1126,6 @@ function downloadText(filename, text) {
 
 build();
 window.__smokeState = state; // 调试入口
+
+// 标签栏右侧显示上位机版本（唯一事实源 HOST_VERSION）
+$('hostVersion').textContent = '上位机 v' + HOST_VERSION;

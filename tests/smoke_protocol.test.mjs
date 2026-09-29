@@ -241,6 +241,38 @@ await test('模拟设备：开始/停止除烟驱动状态机', async () => {
   }
 });
 
+await test('0xB0 设置帧第 8 字节为风机上限（旧 7 字节帧兼容为 100）', () => {
+  const withLimit = parseUplink(Uint8Array.of(0xb0, 0, 0, 5, 1, 0x4b, 0x0c, 120));
+  assert.equal(withLimit.type, 'settings');
+  assert.equal(withLimit.memoryMode, 1);
+  assert.equal(withLimit.fanLimit, 120);
+  const legacy = parseUplink(Uint8Array.of(0xb0, 0, 0, 5, 1, 0x4b, 0x0c));
+  assert.equal(legacy.fanLimit, 100);
+});
+
+await test('模拟设备：风机上限设置（存档+钳位当前挡位+推送 0xB0）', async () => {
+  const { SmokeSimulator } = await import('../smoke_sim.js');
+  const sim = new SmokeSimulator().start();
+  try {
+    sim._serialOpen = true;
+    const seen = [];
+    const origEmit = sim._emit.bind(sim);
+    sim._emit = (payload) => { seen.push(parseUplink(payload)); return origEmit(payload); };
+    sim._dispatchCommand(CMD.SET_FAN_LIMIT, [120]);
+    assert.equal(sim.settings.fanLimit, 120);
+    const pushed = seen.filter((m) => m.type === 'settings').pop();
+    assert.equal(pushed.fanLimit, 120);
+    sim.gear = 120;
+    sim._dispatchCommand(CMD.SET_FAN_LIMIT, [100]);   // 收紧上限：挡位被钳位
+    assert.equal(sim.settings.fanLimit, 100);
+    assert.equal(sim.gear, 100);
+    sim._dispatchCommand(CMD.SET_GEAR, [120]);        // 上限 100 时设置 120 被钳
+    assert.equal(sim.gear, 100);
+  } finally {
+    sim.stop();
+  }
+});
+
 await test('模拟设备：待机时停止除烟被忽略（不进入出烟/冷却界面）', async () => {
   const { SmokeSimulator } = await import('../smoke_sim.js');
   const sim = new SmokeSimulator().start();

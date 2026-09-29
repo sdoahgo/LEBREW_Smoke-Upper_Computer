@@ -59,6 +59,7 @@ export class SmokeSimulator {
       boostDuration: 5,
       memoryMode: 0,
       catalyticTemp: 315.0,
+      fanLimit: 100,   // 100 常规 / 120 Boost 模式（与固件 fan_limit_data 一致）
     };
     this.version = { sw: [1, 2, 0], hw: [0, 1, 0], model: 1 };
 
@@ -351,8 +352,8 @@ export class SmokeSimulator {
         break;
       case CMD.SET_GEAR:
         if (args.length >= 1) {
-          const cap = args[0] > FAN_LIMIT_NORMAL ? FAN_LIMIT_BOOST : FAN_LIMIT_NORMAL;
-          this.gear = Math.min(cap, args[0]);
+          // 与固件 SET_GEAR 一致：受风机上限约束（100 时最多 100，120 时最多 120）
+          this.gear = Math.min(s.fanLimit, args[0]);
           this.log('挡位=' + this.gear);
         }
         break;
@@ -360,6 +361,20 @@ export class SmokeSimulator {
       case CMD.SET_TEMP_UNIT: s.tempUnit = args[0] ? 1 : 0; break;
       case CMD.SET_BOOST_DURATION: s.boostDuration = [5, 10, 15].includes(args[0]) ? args[0] : 5; break;
       case CMD.SET_MEMORY_MODE: s.memoryMode = args[0] ? 1 : 0; break;
+      case CMD.SET_FAN_LIMIT: {
+        const limit = args[0] | 0;
+        if (limit !== 100 && limit !== 120) break;
+        s.fanLimit = limit;
+        if (this.gear > limit) {   // 与固件一致：超限的当前挡位被钳到上限
+          this.gear = limit;
+          this.log('风机上限 ' + limit + '%，挡位已钳位');
+          this._emitState();
+        } else {
+          this.log('风机上限已设置: ' + limit + '%');
+        }
+        this._emitSettings();
+        break;
+      }
       case CMD.SET_CATALYTIC_TEMP:
         if (args.length >= 2) {
           const value = u16le(args, 0) / 10;
@@ -396,7 +411,7 @@ export class SmokeSimulator {
 
   _emitSettings() {
     const s = this.settings;
-    const out = new Uint8Array(7);
+    const out = new Uint8Array(8);
     out[0] = 0xb0;
     out[1] = s.language;
     out[2] = s.tempUnit;
@@ -405,6 +420,7 @@ export class SmokeSimulator {
     const catalytic = Math.round(s.catalyticTemp * 10);
     out[5] = catalytic & 0xff;
     out[6] = (catalytic >> 8) & 0xff;
+    out[7] = s.fanLimit;
     this._emit(out);
   }
 

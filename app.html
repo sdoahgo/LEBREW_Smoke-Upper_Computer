@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>LEBREW SMOKE 除烟机上位机</title>
-  <link rel="stylesheet" href="style.css?v=20260928r">
+  <link rel="stylesheet" href="style.css?v=20260928w">
 </head>
 <body>
   <header class="topbar">
@@ -30,6 +30,7 @@
     <button data-tab="settings">设置</button>
     <button data-tab="upgrade">固件升级</button>
     <button data-tab="log">日志</button>
+    <span class="tabver" id="hostVersion">上位机 v0.0.1</span>
   </nav>
 
   <main>
@@ -38,7 +39,7 @@
       <div class="row-2">
         <div class="card statecard">
           <div class="envstrip">
-            <span>环境 <b id="ambientValue">--</b> ℃</span>
+            <span>环境 <b id="ambientValue">--</b> <span id="ambientUnit">℃</span></span>
             <span>湿度 <b id="humValue">--</b> %</span>
             <span>VOC <b id="vocValue">--</b></span>
           </div>
@@ -51,8 +52,8 @@
           <div class="biggrid">
             <div class="big wide3"><b id="gearValue">--</b><span>挡位 %</span></div>
             <div class="big wide3"><b id="rpmValue">--</b><span>转速 rpm</span></div>
-            <div class="wide2"><b id="inletValue">--</b><span>进风口温度 ℃</span></div>
-            <div class="wide2"><b id="outletValue">--</b><span>出风口温度（催化）℃</span></div>
+            <div class="wide2"><b id="inletValue">--</b><span>进风口温度 <span id="inletUnit">℃</span></span></div>
+            <div class="wide2"><b id="outletValue">--</b><span>出风口温度（催化）<span id="outletUnit">℃</span></span></div>
             <div class="wide2"><b id="ssrValue">--</b><span>发热丝 PWM %</span></div>
           </div>
         </div>
@@ -149,8 +150,14 @@
             </label>
             <label class="line"><span>记忆功能</span>
               <div class="segbtns" id="setMemoryGroup">
-                <button data-v="0" class="btn ghost">保持上一次模式</button>
-                <button data-v="1" class="btn ghost">默认模式</button>
+                <button data-v="1" class="btn ghost">保持上一次模式</button>
+                <button data-v="0" class="btn ghost">默认模式</button>
+              </div>
+            </label>
+            <label class="line"><span>风机上限</span>
+              <div class="segbtns" id="setFanLimitGroup">
+                <button data-v="100" class="btn ghost">常规风机上限（100%）</button>
+                <button data-v="120" class="btn ghost">Boost模式风机上限（120%）</button>
               </div>
             </label>
             <div class="stepper">
@@ -271,6 +278,6 @@
     </div>
   </div>
 
-  <script type="module" src="app.js?v=20260928r"></script>
+  <script type="module" src="app.js?v=20260928w"></script>
 </body>
 </html>

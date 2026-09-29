@@ -54,8 +54,9 @@ export const CMD = Object.freeze({
   SET_LANGUAGE: 0x26,     // [0 中 1 英]
   SET_TEMP_UNIT: 0x27,    // [0℃ 1℉]
   SET_SWITCHER_GEAR: 0x28, // [切换器位置 1 左开 2 双开 3 右开]
+  SET_FAN_LIMIT: 0x29,    // [风机上限 100 常规 / 120 Boost 模式]
   SET_BOOST_DURATION: 0x2d, // [5/10/15]
-  SET_MEMORY_MODE: 0x2e,  // [0 保持上次 1 默认]
+  SET_MEMORY_MODE: 0x2e,  // [1 保持上一次模式 0 默认模式]（固件 Save_last_time 语义）
   SET_CATALYTIC_TEMP: 0x30, // [温度 x0.1℃ 2B LE]
   SELF_TEST: 0x32,        //
   READ_ALL: 0x40,         //
@@ -125,6 +126,8 @@ export function buildOtaData(seq, chunk) {
 // ---------------------------------------------------------------------------
 // 上行（设备 → 上位机）解析
 // ---------------------------------------------------------------------------
+
+export const HOST_VERSION = '0.0.1';   // 上位机软件版本（唯一事实源，显示在标签栏右侧）
 
 export const DEVICE_STATES = ['待机', '预热中', '运行', 'Boost', '冷却中', '故障'];
 export const SWITCHER_STATES = ['未连接', '搜索中', '已连接'];
@@ -212,7 +215,7 @@ export function parseUplink(bytes) {
     return { type: 'fault', code: readU16LE(bytes, 1), active: bytes[3] === 1, bytes };
   }
 
-  // 0xB0 设置读回：[B0][语言][单位][Boost时长][记忆][催化温度 x0.1 2B LE]
+  // 0xB0 设置读回：[B0][语言][单位][Boost时长][记忆][催化温度 x0.1 2B LE][风机上限]
   if (first === 0xb0 && bytes.length >= 7) {
     return {
       type: 'settings',
@@ -221,6 +224,7 @@ export function parseUplink(bytes) {
       boostDuration: bytes[3],
       memoryMode: bytes[4],
       catalyticTemp: readU16LE(bytes, 5) / 10,
+      fanLimit: bytes.length >= 8 ? bytes[7] : 100,   // 100 常规 / 120 Boost 模式
       bytes,
     };
   }
