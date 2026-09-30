@@ -56,18 +56,91 @@ body {
 .chip.on .dot { background: var(--ok); }
 .chip.on { color: #9fe6b5; }
 
-/* ---------- 标签页 ---------- */
-.tabs { display: flex; gap: 4px; background: #fff; border-bottom: 1px solid var(--line); padding: 0 22px; }
-.tabs button {
-  font: inherit; font-size: 14px; padding: 12px 18px; margin-top: 6px;
-  border: 0; border-bottom: 3px solid transparent; background: none; cursor: pointer; color: var(--muted);
-}
-.tabs button.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
-.tabver { margin-left: auto; align-self: center; font-size: 12px; color: var(--muted); user-select: none; }
+/* ---------- 固定视口单页布局：整页不滚动 ----------
+ * 网格：状态(左上) 运行操作(中上) 升级+日志(右上列)
+ *      实时曲线(左下, 跨两列) 设置(右下)
+ * 内容超出时在单元格内部滚动（升级列/设置列），页面本身不出滚动条 */
+html, body { height: 100%; }
+body { overflow: hidden; display: flex; flex-direction: column; }
 
-main { max-width: 1280px; margin: 0 auto; padding: 18px 22px 40px; }
-.tab { display: none; }
-.tab.active { display: block; }
+.tabver { font-size: 12px; color: var(--muted); user-select: none; white-space: nowrap; }
+
+main {
+  flex: 1 1 auto; min-height: 0; max-width: none; margin: 0;
+  padding: 10px 14px 12px; gap: 10px;
+  display: grid;
+  grid-template-columns: 0.82fr 1.5fr 0.9fr;
+  grid-template-rows: minmax(0, 52%) minmax(0, 48%);
+  grid-template-areas:
+    "state ops stack"
+    "curves curves stack";
+  overflow: hidden;
+}
+#tab-control, #tab-control .row-2 { display: contents; }
+.statecard { grid-area: state; }
+.ops { grid-area: ops; }
+.stackcol { grid-area: stack; display: flex; flex-direction: column; gap: 10px; min-height: 0; overflow: auto; }
+#tab-curves { grid-area: curves; min-height: 0; }
+
+/* 异常横幅：改为顶部浮层，不占网格位置 */
+.faulthost {
+  position: fixed; top: 64px; left: 50%; transform: translateX(-50%);
+  z-index: 70; width: min(760px, 92vw); margin: 0;
+  box-shadow: 0 10px 34px rgba(15, 23, 42, .28);
+}
+
+/* 曲线卡填满格：四张图 2×2 撑满剩余高度 */
+#tab-curves .card { height: 100%; display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
+.charts { flex: 1; min-height: 0; grid-template-rows: repeat(2, minmax(0, 1fr)); }
+.chart { display: flex; flex-direction: column; min-height: 0; }
+.chart canvas { flex: 1; height: auto; min-height: 0; }
+
+/* 固定视口兜底：卡片内容超高时卡内滚动，页面永不滚动 */
+main .card { min-height: 0; overflow: auto; }
+#tab-curves .card { overflow: hidden; }
+
+/* 紧凑化：运行操作卡与设置卡缩小留白以塞进固定格 */
+.gearlabel { margin-bottom: 4px; }
+.ops .geargrid .btn { padding: 5px 0; }
+.ops .runbtns { margin-bottom: 6px; }
+.ops .btn.big { padding: 10px 18px; }
+.swbtns .btn { padding: 10px 0; font-size: 15px; }
+.ops .hint { display: none; }
+#tab-settings h2, #tab-upgrade h2, #tab-log h2 { margin: 2px 0 6px; }
+#tab-settings .line { padding: 2px 0; }
+.segbtns .btn { padding: 4px 10px; font-size: 13px; }
+.stepper { margin: 6px 0; }
+
+/* 右列堆叠：日志在上、固件升级在后；日志两通道上下排 */
+#tab-log .row-2 { display: flex; flex-direction: column; gap: 10px; }
+
+/* 设备设置（在运行操作卡内）：左侧五项竖排，右侧催化温度垂直居中 */
+#tab-settings .form { display: grid; grid-template-columns: 1fr auto; column-gap: 20px; align-items: center; }
+#tab-settings .setleft { display: flex; flex-direction: column; gap: 3px; }
+#tab-settings .setright { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+#tab-settings .hint { display: none; }
+#tab-settings .stepper { margin: 0; }
+
+/* 右列顶部：自检与关于并排 */
+.stackcol > div:first-child { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+/* 状态卡撑满格子 */
+.statecard { height: 100%; }
+
+/* 窄窗口回退：恢复整页滚动的堆叠布局 */
+@media (max-width: 1100px) {
+  body { overflow: auto; display: block; }
+  main { display: block; padding: 14px 16px 40px; }
+  #tab-control .row-2, #tab-log .row-2, #tab-settings .row-2 { display: grid; grid-template-columns: 1fr 1fr; }
+  .statecard { height: auto; }
+  #tab-curves .card { height: auto; }
+  .chart canvas { height: 150px; flex: none; }
+  .faulthost { position: static; transform: none; width: auto; }
+  .stackcol { display: block; }
+  #tab-settings .form { display: block; }
+  .stackcol > div:first-child { display: block; }
+}
+
 
 .card {
   background: var(--card); border: 1px solid var(--line); border-radius: 12px;
@@ -82,7 +155,7 @@ main { max-width: 1280px; margin: 0 auto; padding: 18px 22px 40px; }
 
 /* ---------- 主控 ---------- */
 .envstrip {
-  display: flex; gap: 18px; font-size: 12px; color: var(--muted);
+  display: flex; gap: 12px; font-size: 12px; color: var(--muted);
   justify-content: center; flex-wrap: wrap;
 }
 .envstrip b { color: var(--ink); font-variant-numeric: tabular-nums; font-weight: 600; }
@@ -186,7 +259,7 @@ main { max-width: 1280px; margin: 0 auto; padding: 18px 22px 40px; }
 
 /* ---------- 设置 ---------- */
 .form { display: flex; flex-direction: column; gap: 12px; }
-.line { display: grid; grid-template-columns: 170px 1fr; align-items: center; gap: 10px; font-size: 13px; }
+.line { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 10px; font-size: 13px; }
 .line select, .line input[type=number] {
   font: inherit; padding: 6px 10px; border: 1px solid var(--line); border-radius: 7px; background: #fff;
 }
@@ -266,3 +339,23 @@ main { max-width: 1280px; margin: 0 auto; padding: 18px 22px 40px; }
   border: 1px solid #f0d9a8; border-radius: 8px; padding: 8px 12px; margin-bottom: 10px;
 }
 .wifiprobe.ok { color: var(--ok); background: #eefaf1; border-color: #b7e2c3; }
+
+/* 固定视口：日志框紧凑高度（置于文件末尾以覆盖前面的定义） */
+.logbox { height: 104px; }
+.otalog { height: 96px; }
+
+/* 设置列紧凑化（固定视口） */
+#tab-settings .line { padding: 1px 0; margin: 0; }
+#tab-settings .line > span { font-size: 13px; }
+#tab-settings h2 { font-size: 14px; }
+#tab-settings .segbtns { gap: 6px; }
+.segbtns .btn { padding: 3px 9px; font-size: 12.5px; }
+.stepper { margin: 4px 0; }
+.stepvalue b { font-size: 16px; }
+.st { padding: 3px 0; font-size: 12.5px; }
+#tab-settings .about p, #tab-settings .about { font-size: 12.5px; }
+
+/* ghosted 按钮悬停：保持透明底与本色文字（运行中悬停「停止除烟」白字不可见的修复） */
+.btn.primary.ghosted:hover:not(:disabled) { color: var(--accent); border-color: var(--accent); background: rgba(224, 81, 47, .08); }
+.btn.danger.ghosted:hover:not(:disabled) { color: var(--danger); border-color: var(--danger); background: rgba(220, 38, 38, .08); filter: none; }
+.btn.warn.ghosted:hover:not(:disabled) { color: var(--warn); border-color: var(--warn); background: rgba(217, 119, 6, .08); filter: none; }

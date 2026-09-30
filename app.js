@@ -1,9 +1,9 @@
 // app.js — LEBREW SMOKE 除烟机上位机主逻辑
 // 依赖基座 comm_link.js（不改核心）+ smoke_protocol / smoke_ble / smoke_sim
 
-import { Link, MagicLengthFramer, SerialTransport, bytesToHex } from './comm_link.js?v=20260930f';
-import { SmokeBleTransport } from './smoke_ble.js?v=20260930f';
-import { SmokeSimulator } from './smoke_sim.js?v=20260930f';
+import { Link, MagicLengthFramer, SerialTransport, bytesToHex } from './comm_link.js?v=20260930n';
+import { SmokeBleTransport } from './smoke_ble.js?v=20260930n';
+import { SmokeSimulator } from './smoke_sim.js?v=20260930n';
 import {
   ACK_WINDOW,
   CMD,
@@ -22,7 +22,7 @@ import {
   describeFault,
   frameSerial,
   parseUplink,
-} from './smoke_protocol.js?v=20260930f';
+} from './smoke_protocol.js?v=20260930q';
 
 const $ = (id) => document.getElementById(id);
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -1153,14 +1153,6 @@ $('simSwitcher').addEventListener('click', () => {
 // —— 故障弹窗 ——
 $('faultAck').addEventListener('click', () => $('faultOverlay').classList.add('hidden'));
 
-// —— 标签页 ——
-for (const button of document.querySelectorAll('.tabs button')) {
-  button.addEventListener('click', () => {
-    document.querySelectorAll('.tabs button').forEach((b) => b.classList.toggle('active', b === button));
-    document.querySelectorAll('.tab').forEach((section) => section.classList.toggle('active', section.id === 'tab-' + button.dataset.tab));
-    for (const chart of charts) chart.resize();
-  });
-}
 
 function downloadText(filename, text) {
   const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });

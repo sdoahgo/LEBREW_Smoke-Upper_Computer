@@ -76,7 +76,17 @@ check('style.css 存在且含主样式', () => {
   assert.ok(css.includes('.statebadge') && css.includes('.topbar'));
 });
 
+// DOM id 交叉检查：app.js 里 $('id') 引用的元素必须存在于 app.html
+// （曾因重构丢失 catalyticUp 导致模块初始化中断、全部设置按钮失效）
+check('app.js 引用的 DOM id 全部存在于 app.html', () => {
+  const js = readFileSync(join(moduleDir, 'app.js'), 'utf8');
+  const html = readFileSync(join(moduleDir, 'app.html'), 'utf8');
+  const ids = [...new Set([...js.matchAll(/\$\('([A-Za-z0-9_]+)'\)/g)].map((m) => m[1]))];
+  const missing = ids.filter((id) => !html.includes('id="' + id + '"'));
+  assert.deepEqual(missing, [], 'HTML 缺少这些被 JS 引用的元素 id');
+});
+
 console.log('\n========================================');
-console.log('前端检查 ' + 5 + '，通过 ' + (5 - failures.length) + '，失败 ' + failures.length);
+console.log('前端检查 ' + 6 + '，通过 ' + (6 - failures.length) + '，失败 ' + failures.length);
 if (failures.length > 0) process.exitCode = 1;
 else console.log('全部通过');

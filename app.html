@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>LEBREW SMOKE 除烟机上位机</title>
-  <link rel="stylesheet" href="style.css?v=20260930f">
+  <link rel="stylesheet" href="style.css?v=20260930q">
 </head>
 <body>
   <header class="topbar">
@@ -20,23 +20,16 @@
     </div>
     <div class="meta">
       <span id="deviceInfo">未连接</span>
+      <span class="tabver" id="hostVersion">上位机 v0.0.3</span>
       <label class="telemetry"><input type="checkbox" id="telemetryOn" checked> 遥测</label>
     </div>
   </header>
 
-  <nav class="tabs">
-    <button data-tab="control" class="active">主控</button>
-    <button data-tab="curves">实时曲线</button>
-    <button data-tab="settings">设置</button>
-    <button data-tab="upgrade">固件升级</button>
-    <button data-tab="log">日志</button>
-    <span class="tabver" id="hostVersion">上位机 v0.0.1</span>
-  </nav>
 
   <main>
-    <!-- ============ 主控 ============ -->
-    <section id="tab-control" class="tab active">
-      <div class="row-2">
+    <!-- ===== 顶行：状态监控 | 运行操作 ===== -->
+    <section id="tab-control">
+<div class="row-2">
         <div class="card statecard">
           <div class="envstrip">
             <span>环境 <b id="ambientValue">--</b> <span id="ambientUnit">℃</span></span>
@@ -89,6 +82,59 @@
             <button data-sw-gear="3" class="btn ghost" disabled>右开</button>
           </div>
           <p class="hint">点挡位即选中并下发；开始除烟按当前选中挡位启动（预热 → 恒温 → 冷却自动流转）。切换器位置以设备上报为准，机器上按键切换时这里会跟着变。</p>
+                <section id="tab-settings">
+    <div class="row-2">
+            <div class="card">
+              <h2>设备设置 <button id="btnReadSettings" class="btn ghost small">读取</button></h2>
+              <div class="form">
+                <div class="setleft">
+                <label class="line"><span>语言</span>
+                  <div class="segbtns" id="setLanguageGroup">
+                    <button data-v="0" class="btn ghost">中文</button>
+                    <button data-v="1" class="btn ghost">英文</button>
+                  </div>
+                </label>
+                <label class="line"><span>温度单位</span>
+                  <div class="segbtns" id="setTempUnitGroup">
+                    <button data-v="0" class="btn ghost">℃ 摄氏度</button>
+                    <button data-v="1" class="btn ghost">℉ 华氏度</button>
+                  </div>
+                </label>
+                <label class="line"><span>Boost 时长</span>
+                  <div class="segbtns" id="boostDurationGroup">
+                    <button data-v="5" class="btn ghost">5 分钟</button>
+                    <button data-v="10" class="btn ghost">10 分钟</button>
+                    <button data-v="15" class="btn ghost">15 分钟</button>
+                  </div>
+                </label>
+                <label class="line"><span>记忆功能</span>
+                  <div class="segbtns" id="setMemoryGroup">
+                    <button data-v="1" class="btn ghost">保持上一次模式</button>
+                    <button data-v="0" class="btn ghost">默认模式</button>
+                  </div>
+                </label>
+                <label class="line"><span>风机上限</span>
+                  <div class="segbtns" id="setFanLimitGroup">
+                    <button data-v="100" class="btn ghost">常规风机上限（100%）</button>
+                    <button data-v="120" class="btn ghost">Boost模式风机上限（120%）</button>
+                  </div>
+                </label>
+                </div>
+                <div class="setright">
+                  <div class="stepper">
+                    <button id="catalyticDown" class="btn stepbtn">&lt;</button>
+                    <div class="stepvalue">
+                      <b id="catalyticValue">--</b>
+                      <span>℃ 催化温度（300–330，步进 5）</span>
+                    </div>
+                    <button id="catalyticUp" class="btn stepbtn">&gt;</button>
+                  </div>
+                </div>
+              </div>
+              <p class="hint">与设备设置菜单一致，改动即写入（掉电保存）。</p>
+            </div>
+          </div>
+          </section>
         </div>
       </div>
       <div class="card faulthost hidden" id="faultBanner">
@@ -97,104 +143,32 @@
       </div>
     </section>
 
-    <!-- ============ 曲线 ============ -->
-    <section id="tab-curves" class="tab">
-      <div class="card">
-        <div class="chartbar">
-          <h2>实时曲线（进/出风口温度 · 电机转速 · 发热丝 PWM）</h2>
-          <div class="charttools">
-            <label>时间窗
-              <select id="chartWindow">
-                <option value="60000">1 分钟</option>
-                <option value="300000" selected>5 分钟</option>
-                <option value="900000">15 分钟</option>
-              </select>
-            </label>
-            <button id="chartPause" class="btn ghost">暂停</button>
-            <button id="chartExport" class="btn ghost">导出 CSV</button>
-          </div>
-        </div>
-        <div class="charts">
-          <div class="chart"><label>进风口温度 ℃</label><button type="button" class="zoombtn" title="放大">⛶</button><canvas id="chartInlet"></canvas></div>
-          <div class="chart"><label>出风口温度 ℃</label><button type="button" class="zoombtn" title="放大">⛶</button><canvas id="chartOutlet"></canvas></div>
-          <div class="chart"><label>电机转速 rpm</label><button type="button" class="zoombtn" title="放大">⛶</button><canvas id="chartRpm"></canvas></div>
-          <div class="chart"><label>发热丝 PWM %</label><button type="button" class="zoombtn" title="放大">⛶</button><canvas id="chartSsr"></canvas></div>
-        </div>
-      </div>
-    </section>
+    <!-- ===== 右上：固件升级；右中：日志；右列跨两行：设置 ===== -->
 
-    <!-- ============ 设置 ============ -->
-    <section id="tab-settings" class="tab">
-      <div class="row-2">
-        <div class="card">
-          <h2>设备设置 <button id="btnReadSettings" class="btn ghost small">读取</button></h2>
-          <div class="form">
-            <label class="line"><span>语言</span>
-              <div class="segbtns" id="setLanguageGroup">
-                <button data-v="0" class="btn ghost">中文</button>
-                <button data-v="1" class="btn ghost">英文</button>
-              </div>
-            </label>
-            <label class="line"><span>温度单位</span>
-              <div class="segbtns" id="setTempUnitGroup">
-                <button data-v="0" class="btn ghost">℃ 摄氏度</button>
-                <button data-v="1" class="btn ghost">℉ 华氏度</button>
-              </div>
-            </label>
-            <label class="line"><span>Boost 时长</span>
-              <div class="segbtns" id="boostDurationGroup">
-                <button data-v="5" class="btn ghost">5 分钟</button>
-                <button data-v="10" class="btn ghost">10 分钟</button>
-                <button data-v="15" class="btn ghost">15 分钟</button>
-              </div>
-            </label>
-            <label class="line"><span>记忆功能</span>
-              <div class="segbtns" id="setMemoryGroup">
-                <button data-v="1" class="btn ghost">保持上一次模式</button>
-                <button data-v="0" class="btn ghost">默认模式</button>
-              </div>
-            </label>
-            <label class="line"><span>风机上限</span>
-              <div class="segbtns" id="setFanLimitGroup">
-                <button data-v="100" class="btn ghost">常规风机上限（100%）</button>
-                <button data-v="120" class="btn ghost">Boost模式风机上限（120%）</button>
-              </div>
-            </label>
-            <div class="stepper">
-              <button id="catalyticDown" class="btn stepbtn">&lt;</button>
-              <div class="stepvalue">
-                <b id="catalyticValue">--</b>
-                <span>℃ 催化温度（300–330，步进 5）</span>
-              </div>
-              <button id="catalyticUp" class="btn stepbtn">&gt;</button>
-            </div>
-          </div>
-          <p class="hint">与设备设置菜单一致，改动即写入（掉电保存）。</p>
-        </div>
-        <div>
-          <div class="card">
-            <h2>传感器自检 <button id="btnSelfTest" class="btn ghost small">开始自检</button></h2>
-            <div class="selftest">
-              <div class="st" id="stTemp"><i></i>温度传感器 <em>--</em></div>
-              <div class="st" id="stVoc"><i></i>VOC 传感器 <em>--</em></div>
-              <div class="st" id="stHum"><i></i>湿度传感器 <em>--</em></div>
-            </div>
-          </div>
-          <div class="card">
-            <h2>关于</h2>
-            <div class="kv" id="aboutBox">
-              <div><span>软件版本</span><b id="aboutSw">--</b></div>
-              <div><span>硬件版本</span><b id="aboutHw">--</b></div>
-              <div><span>运行时间</span><b id="aboutUptime">--</b></div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
 
-    <!-- ============ 升级 ============ -->
-    <section id="tab-upgrade" class="tab">
-      <div class="card">
+
+    <!-- ===== 右列(跨两行)：日志在上，固件升级在后 ===== -->
+    <div class="stackcol">
+                  <div>
+                <div class="card">
+                  <h2>传感器自检 <button id="btnSelfTest" class="btn ghost small">开始自检</button></h2>
+                  <div class="selftest">
+                    <div class="st" id="stTemp"><i></i>温度传感器 <em>--</em></div>
+                    <div class="st" id="stVoc"><i></i>VOC 传感器 <em>--</em></div>
+                    <div class="st" id="stHum"><i></i>湿度传感器 <em>--</em></div>
+                  </div>
+                </div>
+                <div class="card">
+                  <h2>关于</h2>
+                  <div class="kv" id="aboutBox">
+                    <div><span>软件版本</span><b id="aboutSw">--</b></div>
+                    <div><span>硬件版本</span><b id="aboutHw">--</b></div>
+                    <div><span>运行时间</span><b id="aboutUptime">--</b></div>
+                  </div>
+                </div>
+              </div>
+      <section id="tab-upgrade">
+<div class="card">
         <h2>固件升级（.bin）</h2>
         <div class="upgrade-file">
           <input type="file" id="otaFile" accept=".bin,application/octet-stream">
@@ -221,11 +195,9 @@
         </div>
         <pre class="otalog" id="otaLog"></pre>
       </div>
-    </section>
-
-    <!-- ============ 日志 ============ -->
-    <section id="tab-log" class="tab">
-      <div class="row-2">
+      </section>
+      <section id="tab-log">
+<div class="row-2">
         <div class="card logcard">
           <div class="logbar">
             <h2>蓝牙通道</h2>
@@ -266,7 +238,35 @@
           <button id="simSwitcher" class="btn ghost">切换器状态轮换</button>
         </div>
       </div>
-    </section>
+      </section>
+    </div>
+
+    <!-- ===== 底行：实时曲线(左下, 跨两列) | 设置(右列跨两行) ===== -->
+      <section id="tab-curves">
+<div class="card">
+        <div class="chartbar">
+          <h2>实时曲线（进/出风口温度 · 电机转速 · 发热丝 PWM）</h2>
+          <div class="charttools">
+            <label>时间窗
+              <select id="chartWindow">
+                <option value="60000">1 分钟</option>
+                <option value="300000" selected>5 分钟</option>
+                <option value="900000">15 分钟</option>
+              </select>
+            </label>
+            <button id="chartPause" class="btn ghost">暂停</button>
+            <button id="chartExport" class="btn ghost">导出 CSV</button>
+          </div>
+        </div>
+        <div class="charts">
+          <div class="chart"><label>进风口温度 ℃</label><button type="button" class="zoombtn" title="放大">⛶</button><canvas id="chartInlet"></canvas></div>
+          <div class="chart"><label>出风口温度 ℃</label><button type="button" class="zoombtn" title="放大">⛶</button><canvas id="chartOutlet"></canvas></div>
+          <div class="chart"><label>电机转速 rpm</label><button type="button" class="zoombtn" title="放大">⛶</button><canvas id="chartRpm"></canvas></div>
+          <div class="chart"><label>发热丝 PWM %</label><button type="button" class="zoombtn" title="放大">⛶</button><canvas id="chartSsr"></canvas></div>
+        </div>
+      </div>
+      </section>
+
   </main>
 
   <!-- 故障弹窗（与设备屏弹窗同文案） -->
@@ -278,6 +278,6 @@
     </div>
   </div>
 
-  <script type="module" src="app.js?v=20260930f"></script>
+  <script type="module" src="app.js?v=20260930q"></script>
 </body>
 </html>
