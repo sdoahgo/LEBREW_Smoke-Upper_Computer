@@ -359,3 +359,52 @@ main .card { min-height: 0; overflow: auto; }
 .btn.primary.ghosted:hover:not(:disabled) { color: var(--accent); border-color: var(--accent); background: rgba(224, 81, 47, .08); }
 .btn.danger.ghosted:hover:not(:disabled) { color: var(--danger); border-color: var(--danger); background: rgba(220, 38, 38, .08); filter: none; }
 .btn.warn.ghosted:hover:not(:disabled) { color: var(--warn); border-color: var(--warn); background: rgba(217, 119, 6, .08); filter: none; }
+
+/* 设备设置折叠面板：默认收起，点标题展开（收起时运行操作卡免滚动） */
+.settings-head { display: flex; justify-content: space-between; align-items: center; cursor: pointer; user-select: none; padding: 2px 0; }
+.settings-head h2 { margin: 0; }
+.settings-head .caret { display: inline-block; transition: transform .15s; color: var(--muted); font-size: 12px; }
+.settings-body { display: none; padding-top: 6px; }
+.settings-card-open .settings-body { display: block; }
+.settings-card-open .caret { transform: rotate(90deg); }
+
+/* ---------- 矮窗口压缩（高度不足时自动收紧，保证任何卡都不出滚动条） ---------- */
+@media (max-height: 920px) {
+  .topbar { padding: 6px 16px; gap: 14px; }
+  .brand h1 { font-size: 16px; }
+  main { padding: 8px 10px 10px; gap: 8px; }
+  .card { padding: 9px 12px; }
+  .card h2 { margin: 0 0 4px; font-size: 14px; }
+  .ops .gearlabel { margin-bottom: 2px; }
+  .ops .geargrid .btn { padding: 3px 0; }
+  .ops .runbtns { margin-bottom: 4px; }
+  .ops .btn.big { padding: 7px 16px; font-size: 14px; }
+  .swbtns { gap: 8px; }
+  .swbtns .btn { padding: 7px 0; font-size: 14px; }
+  .envstrip { gap: 10px; }
+  .statecard { gap: 7px; }
+  .biggrid > div b { font-size: 20px; }
+  .logbox { height: 76px; }
+  .otalog { height: 66px; }
+  .upgrade-file, .channels, .progresswrap { margin-bottom: 5px; }
+  .channels .btn { padding: 6px 12px; }
+  .st { padding: 2px 0; font-size: 12px; }
+  .kv div { padding: 2px 0; font-size: 12.5px; }
+  #tab-log .row-2, .stackcol { gap: 8px; }
+  .logbar { margin-bottom: 4px; }
+  .chartbar { margin-bottom: 6px; }
+  .charttools { font-size: 11px; }
+}
+
+/* ---------- 超矮窗口（≤800px 高）再紧一档 ---------- */
+@media (max-height: 800px) {
+  .topbar { padding: 4px 12px; }
+  main { padding: 6px 8px 8px; gap: 6px; }
+  .card { padding: 7px 10px; }
+  .logbox { height: 60px; }
+  .otalog { height: 52px; }
+  .fileinfo { font-size: 11px; }
+  .st { padding: 1px 0; font-size: 11.5px; }
+  .kv div { padding: 1px 0; font-size: 11.5px; }
+  .channels .btn { padding: 5px 10px; font-size: 13px; }
+}

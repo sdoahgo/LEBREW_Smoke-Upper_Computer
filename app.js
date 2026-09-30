@@ -22,7 +22,7 @@ import {
   describeFault,
   frameSerial,
   parseUplink,
-} from './smoke_protocol.js?v=20260930s';
+} from './smoke_protocol.js?v=20260930v';
 
 const $ = (id) => document.getElementById(id);
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -1037,6 +1037,11 @@ $('chartExport').addEventListener('click', () => {
 
 // —— 设置 ——
 $('btnReadSettings').addEventListener('click', () => withChannel(() => sendCommand(CMD.READ_ALL)));
+// 设备设置折叠面板：默认收起（运行操作卡免滚动），点标题切换；「读取」按钮不触发折叠
+$('settingsToggle').addEventListener('click', (event) => {
+  if (event.target.closest('#btnReadSettings')) return;
+  document.querySelector('#tab-settings .card').classList.toggle('settings-card-open');
+});
 // —— 设置项按钮组（语言/温度单位/Boost 时长/记忆功能，选中的高亮）——
 function wireSegGroup(groupId, cmd) {
   const buttons = [...document.querySelectorAll('#' + groupId + ' button')];

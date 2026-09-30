@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>LEBREW SMOKE 除烟机上位机</title>
-  <link rel="stylesheet" href="style.css?v=20260930s">
+  <link rel="stylesheet" href="style.css?v=20260930v">
 </head>
 <body>
   <header class="topbar">
@@ -85,7 +85,11 @@
                 <section id="tab-settings">
     <div class="row-2">
             <div class="card">
-              <h2>设备设置 <button id="btnReadSettings" class="btn ghost small">读取</button></h2>
+              <div class="settings-head" id="settingsToggle">
+                <h2>设备设置 <span class="caret">▸</span></h2>
+                <button id="btnReadSettings" class="btn ghost small">读取</button>
+              </div>
+              <div class="settings-body" id="settingsBody">
               <div class="form">
                 <div class="setleft">
                 <label class="line"><span>语言</span>
@@ -132,6 +136,7 @@
                 </div>
               </div>
               <p class="hint">与设备设置菜单一致，改动即写入（掉电保存）。</p>
+              </div>
             </div>
           </div>
           </section>
@@ -279,6 +284,6 @@
     </div>
   </div>
 
-  <script type="module" src="app.js?v=20260930s"></script>
+  <script type="module" src="app.js?v=20260930v"></script>
 </body>
 </html>
