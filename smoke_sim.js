@@ -385,7 +385,7 @@ export class SmokeSimulator {
         break;
       case CMD.SELF_TEST: this._runSelfTest(); break;
       case CMD.READ_ALL: this._emitSettings(); break;
-      case CMD.READ_STATE: this._emitState(); break;
+      case CMD.READ_STATE: this._emitState(); if (this.faultCode) this._emit(buildFaultEvent(this.faultCode, true)); break;
       case CMD.READ_SENSORS: this._emitSensors(); break;
       case CMD.READ_VERSION: this._emitVersion(); break;
       case CMD.TELEMETRY_CFG: {

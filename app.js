@@ -22,7 +22,7 @@ import {
   describeFault,
   frameSerial,
   parseUplink,
-} from './smoke_protocol.js?v=20260930q';
+} from './smoke_protocol.js?v=20260930s';
 
 const $ = (id) => document.getElementById(id);
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -98,6 +98,8 @@ function resetDeviceUi() {
   swGearSel = 0;
   state.telemetry.switcherState = -1;
   refreshSwitcherUi();
+  state.activeFaults.clear();   // 断开清空故障，重连后由 READ_STATE 的 0xA2 重新同步
+  renderFaultBanner();
 }
 
 async function build() {

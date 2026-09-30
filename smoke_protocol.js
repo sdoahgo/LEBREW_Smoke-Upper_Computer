@@ -127,7 +127,7 @@ export function buildOtaData(seq, chunk) {
 // 上行（设备 → 上位机）解析
 // ---------------------------------------------------------------------------
 
-export const HOST_VERSION = '0.0.3';   // 上位机软件版本（唯一事实源，显示在标签栏右侧）
+export const HOST_VERSION = '0.0.4';   // 上位机软件版本（唯一事实源，显示在标签栏右侧）
 
 export const DEVICE_STATES = ['待机', '预热中', '运行', 'Boost', '冷却中', '故障'];
 export const SWITCHER_STATES = ['未连接', '搜索中', '已连接'];

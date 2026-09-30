@@ -273,6 +273,29 @@ await test('模拟设备：风机上限设置（存档+钳位当前挡位+推送
   }
 });
 
+await test('模拟设备：重连读状态时同步当前故障（READ_STATE 带 0xA2）', async () => {
+  const { SmokeSimulator } = await import('../smoke_sim.js');
+  const sim = new SmokeSimulator().start();
+  try {
+    sim._serialOpen = true;
+    sim.triggerFault(0x04);   // 风扇电机异常
+    const seen = [];
+    const origEmit = sim._emit.bind(sim);
+    sim._emit = (payload) => { seen.push(parseUplink(payload)); return origEmit(payload); };
+    sim._dispatchCommand(CMD.READ_STATE, []);   // 模拟重连握手
+    const faults = seen.filter((m) => m.type === 'fault');
+    assert.equal(faults.length, 1);
+    assert.equal(faults[0].code, 0x04);
+    assert.equal(faults[0].active, true);
+    sim.clearFault();
+    seen.length = 0;
+    sim._dispatchCommand(CMD.READ_STATE, []);   // 清除后不再同步
+    assert.equal(seen.filter((m) => m.type === 'fault').length, 0);
+  } finally {
+    sim.stop();
+  }
+});
+
 await test('模拟设备：待机时停止除烟被忽略（不进入出烟/冷却界面）', async () => {
   const { SmokeSimulator } = await import('../smoke_sim.js');
   const sim = new SmokeSimulator().start();
