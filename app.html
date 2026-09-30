@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>LEBREW SMOKE 除烟机上位机</title>
-  <link rel="stylesheet" href="style.css?v=20260928w">
+  <link rel="stylesheet" href="style.css?v=20260930f">
 </head>
 <body>
   <header class="topbar">
@@ -115,10 +115,10 @@
           </div>
         </div>
         <div class="charts">
-          <div class="chart"><label>进风口温度 ℃</label><canvas id="chartInlet"></canvas></div>
-          <div class="chart"><label>出风口温度 ℃</label><canvas id="chartOutlet"></canvas></div>
-          <div class="chart"><label>电机转速 rpm</label><canvas id="chartRpm"></canvas></div>
-          <div class="chart"><label>发热丝 PWM %</label><canvas id="chartSsr"></canvas></div>
+          <div class="chart"><label>进风口温度 ℃</label><button type="button" class="zoombtn" title="放大">⛶</button><canvas id="chartInlet"></canvas></div>
+          <div class="chart"><label>出风口温度 ℃</label><button type="button" class="zoombtn" title="放大">⛶</button><canvas id="chartOutlet"></canvas></div>
+          <div class="chart"><label>电机转速 rpm</label><button type="button" class="zoombtn" title="放大">⛶</button><canvas id="chartRpm"></canvas></div>
+          <div class="chart"><label>发热丝 PWM %</label><button type="button" class="zoombtn" title="放大">⛶</button><canvas id="chartSsr"></canvas></div>
         </div>
       </div>
     </section>
@@ -278,6 +278,6 @@
     </div>
   </div>
 
-  <script type="module" src="app.js?v=20260928w"></script>
+  <script type="module" src="app.js?v=20260930f"></script>
 </body>
 </html>

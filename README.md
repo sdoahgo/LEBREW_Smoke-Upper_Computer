@@ -9,8 +9,8 @@
     start_server.cmd        一键起服务并用 Edge/Chrome 打开 http://127.0.0.1:8767/app.html
     tests\run_tests.cmd     全部自测（协议 27 + 基座 52 + 前端 5，不需要硬件，需要 Node 18+）
 
-- 页面默认勾选「模拟设备」：不接硬件即可完整体验全部功能（含三条 OTA 通道演练）。
-- 连真机：取消勾选，点「连接蓝牙」（设备广播名 `LEBREW SMOKE`）或「连接串口」选 COM 口。
+- 首次打开默认**不勾选**「模拟设备」（真机模式）：点「连接蓝牙」（设备广播名 `LEBREW SMOKE`）或「连接串口」选 COM 口。
+- 勾选「模拟设备」：不接硬件即可完整体验全部功能（含三条 OTA 通道演练）。
 - **浏览器要求 Chrome / Edge**（Web Bluetooth / Web Serial 仅这两家支持）。
 
 ## 目录

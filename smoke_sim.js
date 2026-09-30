@@ -212,6 +212,8 @@ export class SmokeSimulator {
       connected: false,
       disconnect() {
         server.connected = false;
+        sim._bleSubscribed.telemetry = false;   // 断链后 CCCD 失效：不再 notify
+        sim._bleSubscribed.ctrl = false;
         for (const handler of [...sim._deviceListeners]) handler();
       },
     };
@@ -357,10 +359,10 @@ export class SmokeSimulator {
           this.log('挡位=' + this.gear);
         }
         break;
-      case CMD.SET_LANGUAGE: s.language = args[0] ? 1 : 0; break;
-      case CMD.SET_TEMP_UNIT: s.tempUnit = args[0] ? 1 : 0; break;
-      case CMD.SET_BOOST_DURATION: s.boostDuration = [5, 10, 15].includes(args[0]) ? args[0] : 5; break;
-      case CMD.SET_MEMORY_MODE: s.memoryMode = args[0] ? 1 : 0; break;
+      case CMD.SET_LANGUAGE: s.language = args[0] ? 1 : 0; this._emitSettings(); break;
+      case CMD.SET_TEMP_UNIT: s.tempUnit = args[0] ? 1 : 0; this._emitSettings(); break;
+      case CMD.SET_BOOST_DURATION: s.boostDuration = [5, 10, 15].includes(args[0]) ? args[0] : 5; this._emitSettings(); break;
+      case CMD.SET_MEMORY_MODE: s.memoryMode = args[0] ? 1 : 0; this._emitSettings(); break;
       case CMD.SET_FAN_LIMIT: {
         const limit = args[0] | 0;
         if (limit !== 100 && limit !== 120) break;
@@ -378,7 +380,7 @@ export class SmokeSimulator {
       case CMD.SET_CATALYTIC_TEMP:
         if (args.length >= 2) {
           const value = u16le(args, 0) / 10;
-          if (value >= 300 && value <= 330) s.catalyticTemp = value;
+          if (value >= 300 && value <= 330) { s.catalyticTemp = value; this._emitSettings(); }
         }
         break;
       case CMD.SELF_TEST: this._runSelfTest(); break;

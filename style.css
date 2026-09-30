@@ -167,9 +167,22 @@ main { max-width: 1280px; margin: 0 auto; padding: 18px 22px 40px; }
 .charttools select { font: inherit; padding: 4px 8px; border: 1px solid var(--line); border-radius: 6px; }
 .charts { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 @media (max-width: 960px) { .charts { grid-template-columns: 1fr; } }
-.chart { border: 1px solid var(--line); border-radius: 10px; padding: 10px; background: #fbfcfd; }
+.chart { border: 1px solid var(--line); border-radius: 10px; padding: 10px; background: #fbfcfd; position: relative; }
 .chart label { font-size: 12px; color: var(--muted); display: block; margin-bottom: 6px; }
 .chart canvas { width: 100%; height: 150px; display: block; }
+.zoombtn {
+  position: absolute; top: 8px; right: 8px; width: 26px; height: 26px;
+  border: 1px solid var(--line); border-radius: 6px; background: #fff;
+  color: var(--muted); font-size: 13px; line-height: 1; padding: 0; cursor: pointer;
+}
+.zoombtn:hover { border-color: var(--accent); color: var(--accent); }
+.chart.zoomed {
+  position: fixed; inset: 26px; z-index: 80; padding: 14px;
+  display: flex; flex-direction: column;
+  background: #fff; box-shadow: 0 12px 40px rgba(15, 23, 42, .2);
+}
+.chart.zoomed label { font-size: 14px; font-weight: 600; margin-bottom: 10px; }
+.chart.zoomed canvas { flex: 1; height: auto; min-height: 0; }
 
 /* ---------- 设置 ---------- */
 .form { display: flex; flex-direction: column; gap: 12px; }

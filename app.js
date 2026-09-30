@@ -1,9 +1,9 @@
 // app.js — LEBREW SMOKE 除烟机上位机主逻辑
 // 依赖基座 comm_link.js（不改核心）+ smoke_protocol / smoke_ble / smoke_sim
 
-import { Link, MagicLengthFramer, SerialTransport, bytesToHex } from './comm_link.js?v=20260928w';
-import { SmokeBleTransport } from './smoke_ble.js?v=20260928w';
-import { SmokeSimulator } from './smoke_sim.js?v=20260928w';
+import { Link, MagicLengthFramer, SerialTransport, bytesToHex } from './comm_link.js?v=20260930f';
+import { SmokeBleTransport } from './smoke_ble.js?v=20260930f';
+import { SmokeSimulator } from './smoke_sim.js?v=20260930f';
 import {
   ACK_WINDOW,
   CMD,
@@ -22,7 +22,7 @@ import {
   describeFault,
   frameSerial,
   parseUplink,
-} from './smoke_protocol.js?v=20260928w';
+} from './smoke_protocol.js?v=20260930f';
 
 const $ = (id) => document.getElementById(id);
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -54,7 +54,7 @@ function makeReopenable(serialTransport) {
 }
 
 const state = {
-  useMock: true,
+  useMock: false,   // 首次打开默认真机模式，勾选「模拟设备」进入无硬件演示
   link: null,
   ble: null,
   serial: null,
@@ -62,6 +62,7 @@ const state = {
   telemetry: { state: -1, gear: 0, rpm: 0, inlet: null, outlet: null, ssr: 0, voc: 0, hum: 0 },
   settings: null,
   version: null,
+  versionAt: 0,          // 0xB3 到达时刻，运行时间本地走秒用
   tempUnitF: false,                          // 温度单位跟随设备设置（false=℃ true=℉）
   temps: { inlet: null, outlet: null, ambient: null },   // 最近一次原始摄氏值
   activeFaults: new Map(),
@@ -82,10 +83,21 @@ async function teardown() {
   }
   state.sim?.stop();
   state.link = state.ble = state.serial = state.sim = null;
-  state.tempUnitF = false;   // 单位回默认 ℃，重连后由 0xB0 重新同步
+  resetDeviceUi();
+}
+
+/* 断开/重建共用的界面复位：运行时间、温度单位、挡位网格、切换器全部回默认，
+ * 重连后由设备 0xB0/0xB1/遥测重新同步 */
+function resetDeviceUi() {
+  state.version = null;
+  $('aboutUptime').textContent = '--';
+  state.tempUnitF = false;
   state.temps = { inlet: null, outlet: null, ambient: null };
   refreshMainTemps();
-  applyFanLimit(120);   // 挡位网格回全显，重连后由设备上限重新约束
+  applyFanLimit(120);
+  swGearSel = 0;
+  state.telemetry.switcherState = -1;
+  refreshSwitcherUi();
 }
 
 async function build() {
@@ -123,6 +135,10 @@ async function build() {
     transport.on('disconnected', () => {
       refreshChips(transport);
       if (transport === state.ble) setBadge('未连接', '');
+      if (!anyChannel()) {
+        setBadge('未连接', '');
+        resetDeviceUi();   // 全部通道断开：主控界面完整复位，不再残留设备状态
+      }
     });
     transport.on('error', (error) => {
       logPane(transport === state.ble ? 'ble' : 'serial', 'ER', new TextEncoder().encode(error?.message || String(error)));
@@ -284,6 +300,7 @@ function handleUplink(message, transport) {
       break;
     case 'version':
       state.version = message;
+      state.versionAt = Date.now();
       setDeviceText('LEBREW SMOKE · 固件 ' + message.sw + ' · 硬件 ' + message.hw);
       $('aboutSw').textContent = message.sw;
       $('aboutHw').textContent = message.hw;
@@ -446,18 +463,27 @@ function formatUptime(seconds) {
   return (h ? h + ' 时 ' : '') + m + ' 分 ' + s + ' 秒';
 }
 
+// 运行时间走秒：0xB3 只在连接握手时读一次，这里基于快照每秒本地累加，
+// 断开重连（或设备 OTA 重启后重连）会用新的 0xB3 重新校准
+setInterval(() => {
+  if (!state.version) return;
+  const uptime = state.version.uptime + (Date.now() - state.versionAt) / 1000;
+  $('aboutUptime').textContent = formatUptime(uptime);
+}, 1000);
+
 // ---------------------------------------------------------------------------
 // 曲线（自绘 canvas，零依赖）
 // ---------------------------------------------------------------------------
 
 class TinyChart {
-  constructor(canvas, pick, color, unit, minSpan = 10, fixedRange = null) {
+  constructor(canvas, pick, color, unit, minSpan = 10, fixedRange = null, floorZero = false) {
     this.canvas = canvas;
     this.pick = pick;
     this.color = color;
     this.unit = unit;
     this.minSpan = minSpan; // 纵轴最小跨度：数据平稳时保持这个宽度，不压缩
     this.fixedRange = fixedRange; // 固定纵轴范围（如 [0, 100]）：完全不做自适应
+    this.floorZero = floorZero; // 纵轴最低值锁定 0（最高值仍自适应）
     this.windowMs = 300000;
     this.raf = null;
     this.resize();
@@ -525,6 +551,8 @@ class TinyChart {
         const pad = (max - min) * 0.12;
         min -= pad; max += pad;
       }
+
+      if (this.floorZero) min = 0;   // 转速等曲线纵轴从 0 起，最高值自适应
 
       // 纵轴范围吸附到 1/2/5×10^k 的整刻度，网格 3~5 根
       const step = niceStep((max - min) / 3);
@@ -599,7 +627,7 @@ function niceStep(raw) {
 const charts = [
   new TinyChart($('chartInlet'), (p) => p.inlet, '#e0512f', '℃', 30),
   new TinyChart($('chartOutlet'), (p) => p.outlet, '#d97706', '℃', 30),
-  new TinyChart($('chartRpm'), (p) => p.rpm, '#2563eb', 'rpm', 600),
+  new TinyChart($('chartRpm'), (p) => p.rpm, '#2563eb', 'rpm', 600, null, true),
   new TinyChart($('chartSsr'), (p) => p.ssr, '#16a34a', '%', 25, [0, 100]),
 ];
 
@@ -965,6 +993,30 @@ async function withChannel(fn) {
 }
 
 // —— 曲线 ——
+// —— 曲线放大：四张图各自的 ⛶ 切换全屏浮层，同时只放大一张（ESC 关闭）——
+// 卡片尺寸变化由 TinyChart 的 ResizeObserver 自动触发重绘，无需手动处理
+for (const button of document.querySelectorAll('.zoombtn')) {
+  button.addEventListener('click', () => {
+    const card = button.closest('.chart');
+    const wasZoomed = card.classList.contains('zoomed');
+    for (const zoomed of document.querySelectorAll('.chart.zoomed')) {
+      zoomed.classList.remove('zoomed');
+      zoomed.querySelector('.zoombtn').textContent = '⛶';
+    }
+    if (!wasZoomed) {
+      card.classList.add('zoomed');
+      button.textContent = '✕';
+    }
+  });
+}
+document.addEventListener('keydown', (event) => {
+  if (event.key !== 'Escape') return;
+  const zoomed = document.querySelector('.chart.zoomed');
+  if (!zoomed) return;
+  zoomed.classList.remove('zoomed');
+  zoomed.querySelector('.zoombtn').textContent = '⛶';
+});
+
 $('chartWindow').addEventListener('change', (event) => {
   const windowMs = Number(event.target.value);
   for (const chart of charts) chart.windowMs = windowMs;
