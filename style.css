@@ -368,6 +368,28 @@ main .card { min-height: 0; overflow: auto; }
 .settings-card-open .settings-body { display: block; }
 .settings-card-open .caret { transform: rotate(90deg); }
 
+/* SN 码读写（设备设置面板 · 催化温度上方） */
+.snblock { display: flex; flex-direction: column; gap: 6px; align-items: center; }
+.sncap { display: flex; align-items: baseline; gap: 8px; font-size: 13px; max-width: 320px; justify-content: center; }
+.sncap em { font-style: normal; font-size: 12px; color: var(--warn); white-space: nowrap; }
+.snrow { display: flex; gap: 6px; }
+.snrow input {
+  font: 600 13px/1.2 Consolas, monospace;
+  letter-spacing: .04em;
+  width: 22ch;   /* 16 位 SN + 字间距 + 内边距：留足余量，任何字体回退都完整可见 */
+  padding: 4px 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--ink);
+  text-transform: uppercase;
+}
+.snrow input:focus { outline: none; border-color: var(--accent); }
+.snrow input:disabled { background: #f2f4f7; color: var(--muted); }
+.snbtns { display: flex; gap: 6px; }
+.snverify { font-size: 12px; line-height: 1.5; text-align: center; max-width: 320px; }
+.snverify.ok { color: var(--ok); }
+.snverify.err { color: var(--danger); }
+
 /* ---------- 矮窗口压缩（高度不足时自动收紧，保证任何卡都不出滚动条） ---------- */
 @media (max-height: 920px) {
   .topbar { padding: 6px 16px; gap: 14px; }

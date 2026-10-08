@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>LEBREW SMOKE 除烟机上位机</title>
-  <link rel="stylesheet" href="style.css?v=20260930v">
+  <link rel="stylesheet" href="style.css?v=20261008d">
 </head>
 <body>
   <header class="topbar">
@@ -20,7 +20,7 @@
     </div>
     <div class="meta">
       <span id="deviceInfo">未连接</span>
-      <span class="tabver" id="hostVersion">上位机 v0.0.4</span>
+      <span class="tabver" id="hostVersion">上位机 v0.0.5</span>
       <label class="telemetry"><input type="checkbox" id="telemetryOn" checked> 遥测</label>
     </div>
   </header>
@@ -125,6 +125,18 @@
                 </label>
                 </div>
                 <div class="setright">
+                  <div class="snblock">
+                    <div class="sncap"><span>SN 码</span><em id="snLockNote" class="hidden">已烧录 · 只读</em></div>
+                    <div class="snrow">
+                      <input id="inputSn" type="text" maxlength="16" spellcheck="false" autocomplete="off" placeholder="PURE+日期+流水号">
+                      <button id="btnGenSn" class="btn ghost small" title="按 PURE+今天 YYMMDD+流水号 生成下一号">生成</button>
+                    </div>
+                    <div class="snbtns">
+                      <button id="btnReadSn" class="btn ghost small">读取</button>
+                      <button id="btnWriteSn" class="btn warn small">写入 SN</button>
+                    </div>
+                    <div class="snverify hidden" id="snVerify"></div>
+                  </div>
                   <div class="stepper">
                     <button id="catalyticDown" class="btn stepbtn">&lt;</button>
                     <div class="stepvalue">
@@ -168,6 +180,7 @@
                   <div class="kv" id="aboutBox">
                     <div><span>软件版本</span><b id="aboutSw">--</b></div>
                     <div><span>硬件版本</span><b id="aboutHw">--</b></div>
+                    <div><span>SN 码</span><b id="aboutSn">--</b></div>
                     <div><span>运行时间</span><b id="aboutUptime">--</b></div>
                   </div>
                 </div>
@@ -242,6 +255,7 @@
           <button id="simTrigger" class="btn warn">触发故障</button>
           <button id="simClear" class="btn">清除故障</button>
           <button id="simSwitcher" class="btn ghost">切换器状态轮换</button>
+          <button id="simClearSn" class="btn ghost">清除 SN（重新可写）</button>
         </div>
       </div>
       </section>
@@ -284,6 +298,6 @@
     </div>
   </div>
 
-  <script type="module" src="app.js?v=20260930v"></script>
+  <script type="module" src="app.js?v=20261008b"></script>
 </body>
 </html>

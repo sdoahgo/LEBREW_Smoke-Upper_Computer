@@ -18,6 +18,7 @@ import {
   frameSerial,
   gearToRpm,
   parseUplink,
+  validateSn,
 } from '../smoke_protocol.js';
 import { MagicLengthFramer, crc16Modbus } from '../comm_link.js';
 
@@ -187,6 +188,81 @@ await test('模拟设备：切换器位置命令（已连接生效并推 0xB1，
     sim.switcherState = 0;   // 未连接
     sim._dispatchCommand(CMD.SET_SWITCHER_GEAR, [1]);
     assert.equal(sim.switcherGear, 3);   // 被忽略，保持原位置
+  } finally {
+    sim.stop();
+  }
+});
+
+// —— SN 码（设备「设置→关于」页同款规则：PURE+YYMMDD+6位流水，一次写入）——
+await test('SN 校验：图示样例 PURE251221000000 合法', () => {
+  assert.equal(validateSn('PURE251221000000'), null);
+  assert.equal(validateSn('pure251221000000'), null);   // 大小写不敏感（内部统一大写）
+});
+
+await test('SN 校验：长度/字符/前缀/流水号错误分别给出原因', () => {
+  assert.match(validateSn('PURE25122100000'), /长度/);
+  assert.match(validateSn('PURE2512210000-0'), /字母/);
+  assert.match(validateSn('PF1C251221000000'), /前 4 位/);
+  assert.match(validateSn('PURE25122100000A'), /流水号/);
+});
+
+await test('SN 校验：日期合法性（月份/大小月/闰年 0229）', () => {
+  assert.match(validateSn('PURE251300000001'), /月份/);   // 13 月
+  assert.match(validateSn('PURE250432000001'), /天数/);   // 4 月 32 日
+  assert.match(validateSn('PURE260229000001'), /天数/);   // 2026 非闰年，0229 非法
+  assert.equal(validateSn('PURE240229000001'), null);     // 2024 闰年，0229 合法
+  assert.equal(validateSn('PURE250228000001'), null);     // 2025 平年 0228 合法
+});
+
+await test('0xB5 SN 读回帧解析（空 = 未烧录 / 16 字符）', () => {
+  const empty = parseUplink(Uint8Array.of(0xb5, 0x00));
+  assert.equal(empty.type, 'sn');
+  assert.equal(empty.sn, '');
+  const ascii = Array.from(new TextEncoder().encode('PURE251221000000'));
+  const filled = parseUplink(Uint8Array.of(0xb5, ascii.length, ...ascii));
+  assert.equal(filled.type, 'sn');
+  assert.equal(filled.sn, 'PURE251221000000');
+});
+
+await test('模拟设备：SET_SN 一次写入锁定（合法写入→再写拒绝）并推 0xB5', async () => {
+  const { SmokeSimulator } = await import('../smoke_sim.js');
+  const sim = new SmokeSimulator().start();
+  try {
+    sim._serialOpen = true;
+    const seen = [];
+    const origEmit = sim._emit.bind(sim);
+    sim._emit = (payload) => { seen.push(parseUplink(payload)); return origEmit(payload); };
+
+    sim._dispatchCommand(CMD.READ_SN, []);   // 出厂未烧录 → 空 SN
+    assert.equal(seen.filter((m) => m.type === 'sn').pop().sn, '');
+
+    const good = Array.from(new TextEncoder().encode('PURE261008000012'));
+    sim._dispatchCommand(CMD.SET_SN, good);  // 首次写入成功
+    assert.equal(sim.sn, 'PURE261008000012');
+    assert.equal(seen.filter((m) => m.type === 'sn').pop().sn, 'PURE261008000012');
+
+    sim._dispatchCommand(CMD.SET_SN, Array.from(new TextEncoder().encode('PURE261008000013')));
+    assert.equal(sim.sn, 'PURE261008000012');   // 已烧录：拒绝改写，保持原值
+    assert.equal(seen.filter((m) => m.type === 'sn').pop().sn, 'PURE261008000012');
+
+    sim.clearSn();   // 联调辅助：清除后回到可写（真机等价操作是擦 NVS）
+    assert.equal(sim.sn, '');
+    sim._dispatchCommand(CMD.SET_SN, good);
+    assert.equal(sim.sn, 'PURE261008000012');
+  } finally {
+    sim.stop();
+  }
+});
+
+await test('模拟设备：SET_SN 格式非法被拒（空 SN 设备不烧录）', async () => {
+  const { SmokeSimulator } = await import('../smoke_sim.js');
+  const sim = new SmokeSimulator().start();
+  try {
+    sim._serialOpen = true;
+    sim._dispatchCommand(CMD.SET_SN, Array.from(new TextEncoder().encode('PF1C250914000001')));
+    assert.equal(sim.sn, '');   // 前缀错误：拒绝
+    sim._dispatchCommand(CMD.SET_SN, Array.from(new TextEncoder().encode('PURE2512210000')));   // 15 位
+    assert.equal(sim.sn, '');
   } finally {
     sim.stop();
   }

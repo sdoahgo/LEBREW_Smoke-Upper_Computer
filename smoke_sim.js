@@ -11,10 +11,12 @@ import {
   buildTelemetry,
   frameSerial,
   gearToRpm,
+  validateSn,
 } from './smoke_protocol.js';
 import { crc16Modbus } from './comm_link.js';
 
 const textEncoder = new TextEncoder();
+const textDecoder = new TextDecoder();
 
 // 风机挡位上限（固定，与固件挡位表一致：常规 100，120 为 Boost 挡）
 const FAN_LIMIT_NORMAL = 100;
@@ -62,6 +64,7 @@ export class SmokeSimulator {
       fanLimit: 100,   // 100 常规 / 120 Boost 模式（与固件 fan_limit_data 一致）
     };
     this.version = { sw: [1, 2, 0], hw: [0, 1, 0], model: 1 };
+    this.sn = '';   // 设备「设置→关于」页的 SN（=真机 SYS_DATA.sn）；空 = 未烧录，一次写入后锁定
 
     this.telemetryEnabled = false;
     this.telemetryPeriod = 500;
@@ -359,6 +362,21 @@ export class SmokeSimulator {
           this.log('挡位=' + this.gear);
         }
         break;
+      case CMD.SET_SN: {
+        // 一次写入锁定：已烧录或格式非法都保持原值，仅回 0xB5 当前值（上位机回读比对裁决）
+        const bytes = args instanceof Uint8Array ? args : Uint8Array.from(args);
+        const text = textDecoder.decode(bytes);
+        if (this.sn) {
+          this.log('SN 已烧录（' + this.sn + '），拒绝改写：' + text);
+        } else if (validateSn(text)) {
+          this.log('SN 格式非法，拒绝写入：' + text);
+        } else {
+          this.sn = text;
+          this.log('SN 已烧录：' + text);
+        }
+        this._emitSn();
+        break;
+      }
       case CMD.SET_LANGUAGE: s.language = args[0] ? 1 : 0; this._emitSettings(); break;
       case CMD.SET_TEMP_UNIT: s.tempUnit = args[0] ? 1 : 0; this._emitSettings(); break;
       case CMD.SET_BOOST_DURATION: s.boostDuration = [5, 10, 15].includes(args[0]) ? args[0] : 5; this._emitSettings(); break;
@@ -388,6 +406,7 @@ export class SmokeSimulator {
       case CMD.READ_STATE: this._emitState(); if (this.faultCode) this._emit(buildFaultEvent(this.faultCode, true)); break;
       case CMD.READ_SENSORS: this._emitSensors(); break;
       case CMD.READ_VERSION: this._emitVersion(); break;
+      case CMD.READ_SN: this._emitSn(); break;
       case CMD.TELEMETRY_CFG: {
         const enable = args[0] === 1;
         const period = args.length >= 3 ? Math.max(100, u16le(args, 1)) : 500;
@@ -470,6 +489,15 @@ export class SmokeSimulator {
     out[9] = (uptime >> 8) & 0xff;
     out[10] = (uptime >> 16) & 0xff;
     out[11] = (uptime >>> 24) & 0xff;
+    this._emit(out);
+  }
+
+  _emitSn() {
+    const ascii = textEncoder.encode(this.sn);
+    const out = new Uint8Array(2 + ascii.length);
+    out[0] = 0xb5;
+    out[1] = ascii.length;
+    out.set(ascii, 2);
     this._emit(out);
   }
 
@@ -670,6 +698,13 @@ export class SmokeSimulator {
     this.state = 0;
     if (code) this._emit(buildFaultEvent(code, false));
     this.log('故障清除');
+  }
+
+  /** 联调辅助：清除已烧录 SN（真机等价操作是擦 NVS；正常设备一次写入锁定不给清） */
+  clearSn() {
+    this.sn = '';
+    this._emitSn();   // 推 0xB5 让上位机界面回到可写状态
+    this.log('SN 已清除（模拟器调试操作）');
   }
 }
 

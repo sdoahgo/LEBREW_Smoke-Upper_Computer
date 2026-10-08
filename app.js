@@ -1,9 +1,9 @@
 // app.js — LEBREW SMOKE 除烟机上位机主逻辑
 // 依赖基座 comm_link.js（不改核心）+ smoke_protocol / smoke_ble / smoke_sim
 
-import { Link, MagicLengthFramer, SerialTransport, bytesToHex } from './comm_link.js?v=20260930n';
-import { SmokeBleTransport } from './smoke_ble.js?v=20260930n';
-import { SmokeSimulator } from './smoke_sim.js?v=20260930n';
+import { Link, MagicLengthFramer, SerialTransport, bytesToHex } from './comm_link.js?v=20261008b';
+import { SmokeBleTransport } from './smoke_ble.js?v=20261008b';
+import { SmokeSimulator } from './smoke_sim.js?v=20261008b';
 import {
   ACK_WINDOW,
   CMD,
@@ -12,6 +12,7 @@ import {
   DEVICE_STATES,
   OTA_MAX_CHUNK,
   PURGE_LEVELS,
+  SN_RULES,
   SMOKE_BLE,
   SMOKE_SERIAL,
   SWITCHER_STATES,
@@ -22,7 +23,8 @@ import {
   describeFault,
   frameSerial,
   parseUplink,
-} from './smoke_protocol.js?v=20260930v';
+  validateSn,
+} from './smoke_protocol.js?v=20261008b';
 
 const $ = (id) => document.getElementById(id);
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -63,6 +65,7 @@ const state = {
   settings: null,
   version: null,
   versionAt: 0,          // 0xB3 到达时刻，运行时间本地走秒用
+  sn: null,              // 设备 SN（0xB5）：null=未知/未连接，''=未烧录，其他=已烧录（锁定）
   tempUnitF: false,                          // 温度单位跟随设备设置（false=℃ true=℉）
   temps: { inlet: null, outlet: null, ambient: null },   // 最近一次原始摄氏值
   activeFaults: new Map(),
@@ -91,6 +94,10 @@ async function teardown() {
 function resetDeviceUi() {
   state.version = null;
   $('aboutUptime').textContent = '--';
+  state.sn = null;
+  $('aboutSn').textContent = '--';
+  refreshSnUi();
+  hideSnVerify();
   state.tempUnitF = false;
   state.temps = { inlet: null, outlet: null, ambient: null };
   refreshMainTemps();
@@ -187,6 +194,8 @@ async function bootSequence(source) {
   state.booting = true;
   try {
     await sendCommand(CMD.READ_VERSION);
+    await sleep(80);
+    await sendCommand(CMD.READ_SN);
     await sleep(80);
     await sendCommand(CMD.READ_ALL);
     await sleep(80);
@@ -310,6 +319,9 @@ function handleUplink(message, transport) {
       break;
     case 'selftest':
       applySelftest(message);
+      break;
+    case 'sn':
+      applySn(message);
       break;
     case 'text':
       otaLogLine('[设备] ' + message.text);
@@ -929,7 +941,7 @@ for (const button of gearButtons) {
   });
 }
 
-// —— 气流切换器：三个位置（1 左开 / 2 双开 / 3 右开），未连接时禁用 ——
+// —— 气流切换器：三个位置（1 左开 / 2 双开 / 3 右开，=屏幕图标亮侧），未连接时禁用 ——
 // 点哪个立即高亮哪个；设备执行后推 0xB1，舵机到位/失败都会纠正高亮，
 // 机器上实体按键切换时也推 0xB1 让这里跟着变（设备是唯一事实源）。
 const switcherGearButtons = [...document.querySelectorAll('#switcherGearGroup button')];
@@ -1092,6 +1104,113 @@ const settingGroups = {
   fanLimit: wireSegGroup('setFanLimitGroup', CMD.SET_FAN_LIMIT),
 };
 
+// —— SN 码读写（设备设置面板，催化温度上方；规则见 smoke_protocol.js SN_RULES）——
+// 设备侧一次写入锁定：SET_SN 后设备无论成败都推 0xB5 当前值，上位机与发送值比对裁决
+let pendingSnEcho = null;
+
+function waitSnEcho(timeoutMs = 4000) {
+  return new Promise((resolve, reject) => {
+    pendingSnEcho = { resolve };
+    pendingSnEcho.timer = setTimeout(() => {
+      pendingSnEcho = null;
+      reject(new Error('等待设备 SN 回读超时'));
+    }, timeoutMs);
+  });
+}
+
+function feedSnEcho(sn) {
+  if (!pendingSnEcho) return;
+  const waiter = pendingSnEcho;
+  pendingSnEcho = null;
+  clearTimeout(waiter.timer);
+  waiter.resolve(sn);
+}
+
+function applySn(message) {
+  state.sn = message.sn ?? '';
+  $('aboutSn').textContent = state.sn || '未烧录';
+  refreshSnUi();
+  feedSnEcho(state.sn);
+}
+
+/** 一次写入锁定：设备已有 SN → 输入框与写入按钮锁死并回填当前值 */
+function refreshSnUi() {
+  const locked = Boolean(state.sn);
+  const input = $('inputSn');
+  input.disabled = locked;
+  if (locked && document.activeElement !== input) input.value = state.sn;
+  $('btnWriteSn').disabled = locked;
+  $('btnGenSn').disabled = locked;
+  const note = $('snLockNote');
+  note.classList.toggle('hidden', !locked);
+  note.textContent = locked ? '已烧录 ' + state.sn : '';
+}
+
+function showSnVerify(kind, text) {
+  const el = $('snVerify');
+  el.classList.remove('hidden', 'ok', 'err');
+  el.classList.add(kind);
+  el.textContent = text;
+}
+
+function hideSnVerify() {
+  $('snVerify').classList.add('hidden');
+}
+
+// 输入即时清洗：自动大写、只留字母数字（扫码枪扫入同样生效）
+$('inputSn').addEventListener('input', (event) => {
+  const cleaned = event.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, SN_RULES.length);
+  if (cleaned !== event.target.value) event.target.value = cleaned;
+  hideSnVerify();
+});
+
+// 「生成」：PURE + 今天 YYMMDD + 流水号。流水号 = 当天最后一次**写入成功**的号 +1：
+// 本机记录与设备当天已烧录的号取大者（跨电脑不重号）；生成只预填不占号，写入成功才落号
+function snTodayYmd() {
+  const d = new Date();
+  return String(d.getFullYear() % 100).padStart(2, '0')
+    + String(d.getMonth() + 1).padStart(2, '0') + String(d.getDate()).padStart(2, '0');
+}
+
+function nextSnCandidate() {
+  const ymd = snTodayYmd();
+  let lastSeq = Number(localStorage.getItem('smoke_sn_seq_' + ymd)) || 0;
+  if (state.sn && state.sn.startsWith(SN_RULES.prefix) && state.sn.slice(4, 10) === ymd) {
+    const devSeq = Number(state.sn.slice(10));
+    if (Number.isFinite(devSeq) && devSeq > lastSeq) lastSeq = devSeq;
+  }
+  return SN_RULES.prefix + ymd + String(Math.min(999999, lastSeq + 1)).padStart(6, '0');
+}
+
+$('btnGenSn').addEventListener('click', () => {
+  $('inputSn').value = nextSnCandidate();
+  hideSnVerify();
+});
+
+$('btnReadSn').addEventListener('click', () => withChannel(() => sendCommand(CMD.READ_SN)));
+
+$('btnWriteSn').addEventListener('click', async () => {
+  const sn = $('inputSn').value.trim().toUpperCase();
+  const problem = validateSn(sn);
+  if (problem) { showSnVerify('err', 'SN 无效：' + problem); return; }
+  if (state.sn) { showSnVerify('err', '设备已烧录 SN（' + state.sn + '），不可再改'); return; }
+  if (!window.confirm('写入后设备将锁定 SN，不可再修改。\n确认写入：' + sn + '？')) return;
+  try {
+    const waiter = waitSnEcho(4000);   // 先注册再发送：设备可能同步回包
+    await sendCommand(CMD.SET_SN, Array.from(new TextEncoder().encode(sn)));
+    const echoed = await waiter;
+    if (echoed === sn) {
+      // 写入成功才落号：当天流水号记录为本次写入的号，下次「生成」从它后面继续
+      localStorage.setItem('smoke_sn_seq_' + sn.slice(4, 10), String(Number(sn.slice(10)) || 0));
+      showSnVerify('ok', '回读一致，写入成功：' + echoed);
+    } else {
+      showSnVerify('err', '写入未生效：设备 SN 仍为「' + (echoed || '空') + '」');
+    }
+  } catch (error) {
+    showSnVerify('err', '写入失败：设备无应答（固件需带 SN 命令）');
+  }
+});
+
 $('btnSelfTest').addEventListener('click', () => withChannel(() => sendCommand(CMD.SELF_TEST)));
 
 // —— 升级 ——
@@ -1156,6 +1275,7 @@ $('simSwitcher').addEventListener('click', () => {
   if (!state.sim) return;
   state.sim.switcherState = (state.sim.switcherState + 1) % 3;
 });
+$('simClearSn').addEventListener('click', () => state.sim?.clearSn());
 
 // —— 故障弹窗 ——
 $('faultAck').addEventListener('click', () => $('faultOverlay').classList.add('hidden'));

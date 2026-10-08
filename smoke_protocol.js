@@ -51,9 +51,10 @@ export const CMD = Object.freeze({
   BOOST_ON: 0x22,         // [时长分钟，0=用设置值]
   BOOST_OFF: 0x23,        //
   SET_GEAR: 0x24,         // [挡位 0-100]
+  SET_SN: 0x25,           // [SN ASCII 16B：PURE+YYMMDD+6位流水]（一次写入；已烧录/格式错拒绝，均回 0xB5 当前值）
   SET_LANGUAGE: 0x26,     // [0 中 1 英]
   SET_TEMP_UNIT: 0x27,    // [0℃ 1℉]
-  SET_SWITCHER_GEAR: 0x28, // [切换器位置 1 左开 2 双开 3 右开]
+  SET_SWITCHER_GEAR: 0x28, // [切换器位置 1 左开 2 双开 3 右开（=屏幕图标亮侧）]
   SET_FAN_LIMIT: 0x29,    // [风机上限 100 常规 / 120 Boost 模式]
   SET_BOOST_DURATION: 0x2d, // [5/10/15]
   SET_MEMORY_MODE: 0x2e,  // [1 保持上一次模式 0 默认模式]（固件 Save_last_time 语义）
@@ -63,12 +64,40 @@ export const CMD = Object.freeze({
   READ_STATE: 0x41,       //
   READ_SENSORS: 0x42,     //
   READ_VERSION: 0x43,     //
+  READ_SN: 0x44,          //
   TELEMETRY_CFG: 0x50,    // [使能 0/1][周期 ms 2B LE]
   ENTER_AP_OTA: 0x60,     // 进入热点升级模式（重启）
   OTA_START: 0x11,        // [total 4B BE][chunk 2B BE]（沿用固件）
   OTA_END: 0x12,          //
   OTA_ABORT: 0x13,        //
 });
+
+// ---------------------------------------------------------------------------
+// SN 码规则（设备「设置 → 关于」页展示）：前缀 PURE + 生产日期 YYMMDD + 6 位流水号，
+// 共 16 字符 ASCII。上位机输入校验与模拟器设备端校验共用 validateSn。
+// ---------------------------------------------------------------------------
+
+export const SN_RULES = Object.freeze({ prefix: 'PURE', length: 16 });
+
+/** 校验 SN；合法返回 null，非法返回中文原因（直接可用于界面提示） */
+export function validateSn(sn) {
+  if (typeof sn !== 'string') return 'SN 必须是字符串';
+  const s = sn.toUpperCase();
+  if (s.length !== SN_RULES.length) return '长度必须 ' + SN_RULES.length + ' 位（当前 ' + s.length + ' 位）';
+  if (!/^[A-Z0-9]+$/.test(s)) return '只允许大写字母与数字';
+  if (!s.startsWith(SN_RULES.prefix)) return '前 4 位必须是 ' + SN_RULES.prefix;
+  const ymd = s.slice(4, 10);
+  if (!/^\d{6}$/.test(ymd)) return '第 5–10 位必须是数字日期 YYMMDD';
+  const yy = Number(ymd.slice(0, 2));
+  const mm = Number(ymd.slice(2, 4));
+  const dd = Number(ymd.slice(4, 6));
+  if (mm < 1 || mm > 12) return '日期月份非法（' + mm + ' 月）';
+  const leap = yy % 4 === 0;   // 2000–2099 区间内被 4 整除即为闰年
+  const maxDay = [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][mm - 1];
+  if (dd < 1 || dd > maxDay) return '日期天数非法（' + mm + ' 月 ' + dd + ' 日）';
+  if (!/^\d{6}$/.test(s.slice(10))) return '末 6 位必须是数字流水号';
+  return null;
+}
 
 // ---------------------------------------------------------------------------
 // 下行（上位机 → 设备）构造
@@ -127,7 +156,7 @@ export function buildOtaData(seq, chunk) {
 // 上行（设备 → 上位机）解析
 // ---------------------------------------------------------------------------
 
-export const HOST_VERSION = '0.0.4';   // 上位机软件版本（唯一事实源，显示在标签栏右侧）
+export const HOST_VERSION = '0.0.5';   // 上位机软件版本（唯一事实源，显示在标签栏右侧）
 
 export const DEVICE_STATES = ['待机', '预热中', '运行', 'Boost', '冷却中', '故障'];
 export const SWITCHER_STATES = ['未连接', '搜索中', '已连接'];
@@ -278,6 +307,12 @@ export function parseUplink(bytes) {
       humOk: bytes[4],
       bytes,
     };
+  }
+
+  // 0xB5 SN 读回：[B5][长度 n][SN ASCII nB]（未烧录 n=0；SET_SN 后无论成败都推当前值供回读比对）
+  if (first === 0xb5 && bytes.length >= 2) {
+    const n = Math.min(bytes[1], bytes.length - 2);
+    return { type: 'sn', sn: textDecoder.decode(bytes.slice(2, 2 + n)), bytes };
   }
 
   // 纯 ASCII 文本（如 AP:REBOOTING、OTA 进度行）
