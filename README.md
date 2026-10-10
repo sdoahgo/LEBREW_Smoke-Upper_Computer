@@ -187,5 +187,5 @@
 ## 真机联调
 
 固件侧对应实现（`smoke_cmd.c/.h`、`user_console.c`、`user_ble.c`、`user_net_ota.c` 等）
-在**固件仓库** `smoke`（gitea: `baicha_qinghuan/Smoke`）中，本仓库只含上位机。
+在**固件仓库** `RoastSee-PureFluxion`（gitea: `RyanLi/RoastSee-PureFluxion`）中，本仓库只含上位机。
 串口与设备共用 UART0（115200），与启动日志同口，协议按 `5A A5` 魔数同步不受日志干扰。
