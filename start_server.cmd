@@ -5,7 +5,11 @@ set "URL=http://127.0.0.1:8767/app.html"
 
 rem ---- If port 8767 is already listening, the server is running; just open the page ----
 netstat -ano | findstr ":8767" | findstr "LISTENING" >nul 2>&1
-if not errorlevel 1 goto open
+if not errorlevel 1 (
+    echo NOTE: port 8767 is busy - a server from an OLD folder may still be running.
+    echo       If the page shows an old version, run stop_server.cmd first, then this script again.
+    goto open
+)
 
 rem ---- Start the local server in a hidden window (keeps running after this window closes) ----
 powershell -NoProfile -ExecutionPolicy Bypass -Command "Start-Process powershell -ArgumentList '-NoProfile','-ExecutionPolicy','Bypass','-File','%~dp0start_demo.ps1','-Page','app.html','-Port','8767','-NoOpen' -WindowStyle Hidden"
