@@ -13,21 +13,21 @@ echo Starting local server...
 timeout /t 2 >nul
 
 :open
-rem ---- Prefer Edge (Web Bluetooth / Web Serial need Edge or Chrome) ----
-if exist "%ProgramFiles(x86)%\Microsoft\Edge\Application\msedge.exe" (
-    start "" "%ProgramFiles(x86)%\Microsoft\Edge\Application\msedge.exe" "%URL%"
-    goto done
-)
-if exist "%ProgramFiles%\Microsoft\Edge\Application\msedge.exe" (
-    start "" "%ProgramFiles%\Microsoft\Edge\Application\msedge.exe" "%URL%"
-    goto done
-)
+rem ---- Prefer Chrome, then Edge (Web Bluetooth / Web Serial need Chrome or Edge) ----
 if exist "%ProgramFiles%\Google\Chrome\Application\chrome.exe" (
     start "" "%ProgramFiles%\Google\Chrome\Application\chrome.exe" "%URL%"
     goto done
 )
 if exist "%ProgramFiles(x86)%\Google\Chrome\Application\chrome.exe" (
     start "" "%ProgramFiles(x86)%\Google\Chrome\Application\chrome.exe" "%URL%"
+    goto done
+)
+if exist "%ProgramFiles(x86)%\Microsoft\Edge\Application\msedge.exe" (
+    start "" "%ProgramFiles(x86)%\Microsoft\Edge\Application\msedge.exe" "%URL%"
+    goto done
+)
+if exist "%ProgramFiles%\Microsoft\Edge\Application\msedge.exe" (
+    start "" "%ProgramFiles%\Microsoft\Edge\Application\msedge.exe" "%URL%"
     goto done
 )
 rem ---- Fallback: system default browser ----
