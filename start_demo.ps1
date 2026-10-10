@@ -45,6 +45,10 @@ try {
         }
 
         $context.Response.ContentType = $contentType
+        # 本地开发服务：禁止浏览器缓存（no-store）。
+        # 否则换新版本文件夹后 URL 相同，浏览器沿用旧缓存的 app.html（连带旧版 JS/CSS），
+        # 出现"新文件夹打开还是旧布局"的问题。
+        $context.Response.Headers.Add("Cache-Control", "no-store")
         $context.Response.ContentLength64 = $bytes.Length
         $context.Response.OutputStream.Write($bytes, 0, $bytes.Length)
         $context.Response.Close()
