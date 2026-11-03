@@ -3,6 +3,9 @@
 电脑本地运行的网页版上位机，通过 **蓝牙（Web Bluetooth）** 或 **串口（Web Serial）** 连接除烟机，
 支持整机操作、屏幕同款状态镜像、实时曲线、设置读写与三通道固件升级。
 基于通信基座 comm_link（零 npm 依赖，原生 ES Module）。
+<img width="1200" height="1200" alt="2_234dacff-4792-42ea-987e-9955ccf02643_1200x1200@2x" src="https://github.com/user-attachments/assets/28a4eacc-41c5-4962-8e4e-17a5a8207406" />
+<img width="1200" height="1200" alt="5_04a6e985-76d4-41c5-93e5-bd9945fa9536_1200x1200@2x" src="https://github.com/user-attachments/assets/2aed7c8b-7cea-4049-b93d-40439a4a1183" />
+<img width="1600" height="2400" alt="2026-09-18_110758_372_1200x1200@2x" src="https://github.com/user-attachments/assets/14a7c93d-10a8-4040-aa1e-dce9edcd00f0" />
 
 ## 快速开始
 
